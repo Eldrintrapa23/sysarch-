@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sit-in Rules</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .back-button {
+            margin-top: 15px;
+        }
+
+        .content {
+            padding: 20px;
+        }
+        .header {
+            font-size: 32px;
+            font-weight: bold;
+            border-bottom: 1px solid #d1c23b;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class = "content">
+        <div class = "header">Sit-in Rules</div>
+    </div>
+
+
+    <div class="w3-container container">
+        <div class="card">
+            <h3>Guidelines for Sit-in Sessions</h3>
+            <ul>
+                <li>No unauthorized sit-ins allowed.</li>
+                <li>Maintain silence in the lab.</li>
+                <li>Respect the instructor and fellow students.</li>
+                <li>Follow lab usage guidelines at all times.</li>
+            </ul>
+            <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
+
+        </div>
+    </div>
+
+</body>
+</html>

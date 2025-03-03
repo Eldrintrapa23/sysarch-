@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            margin: auto;
+            text-align: center;
+        }
+        .header {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #d1c23b;
+            margin-bottom: 20px;
+        }
+        .profile-pic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #ddd;
+            margin-bottom: 10px;
+        }
+        .profile-info {
+            text-align: left;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+        .profile-info p {
+            margin: 8px 0;
+            padding: 5px;
+            background: #f8f8f8;
+            border-radius: 5px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .button {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            text-decoration: none;
+            text-align: center;
+            color: white;
+            margin: 0 5px;
+            transition: 0.3s;
+        }
+        .back-button {
+            background: #ff4d4d;
+        }
+        .edit-button {
+            background: #28a745;
+        }
+        .button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container w3-card">
+        <!-- Profile Header -->
+        <div class="header">My Profile</div>
+
+        <!-- Profile Picture -->
+        <img src="{{ url_for('static', filename='profile_pics/' + (user[8] if user[8] else 'default-avatar.jpg')) }}" 
+             alt="Profile Picture" class="profile-pic">
+        
+        <!-- Name -->
+        <h2 style="color: #333;">{{ user[2] }} {{ user[1] }}</h2>
+
+        <!-- Profile Information -->
+        <div class="profile-info">
+            <p><strong>ID:</strong> {{ user[0] }}</p>
+            <p><strong>Last Name:</strong> {{ user[1] }}</p>
+            <p><strong>First Name:</strong> {{ user[2] }}</p>
+            <p><strong>Course:</strong> {{ user[4] }}</p>
+            <p><strong>Year Level:</strong> {{ user[5] }}</p>
+            <p><strong>Email:</strong> {{ user[6] }}</p>
+            <p><strong>Username:</strong> {{ user[7] }}</p>
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+            <a href="{{ url_for('student_dashboard') }}" class="button back-button">Back</a>
+            <a href="{{ url_for('edit_profile') }}" class="button edit-button">✏️ Edit</a>
+        </div>
+    </div>
+
+</body>
+</html>
+<!--<p><strong>Middle Name:</strong> {{ user[3] }}</p>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .back-button {
+            margin-top: 15px;
+        }
+
+        .content {
+            padding: 20px;
+        }
+        .header {
+            font-size: 32px;
+            font-weight: bold;
+            border-bottom: 1px solid #d1c23b;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content">
+        <div class="header">Announcement</div>
+    </div>
+
+
+    <div class="w3-container container">
+        <div class="card">
+            <h3>Latest Announcements</h3>
+            <ul>
+                <li><strong>February 10, 2025:</strong> No classes on Friday due to maintenance.</li>
+                <li><strong>February 8, 2025:</strong> New sit-in session schedule available.</li>
+                <li><strong>February 5, 2025:</strong> Lab rules have been updated.</li>
+            </ul>
+            <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
+        </div>
+    </div>
+
+</body>
+</html>

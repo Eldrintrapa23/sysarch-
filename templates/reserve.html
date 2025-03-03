@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Reservation</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+        .back-button{
+
+            margin-top: 15px;
+        }
+        
+        
+        .submit-button {
+            margin-top: 15px;
+        }
+        .submit-button {
+            background-color: green;
+            color: white;
+        }
+        .submit-button:hover {
+            background: darkgreen;
+        }
+
+        .content {
+            padding: 20px;
+        }
+        .header {
+            font-size: 32px;
+            font-weight: bold;
+            border-bottom: 1px solid #d1c23b;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+   <div class ="content">
+        <div class ="header">Lab Reservation</div>
+   </div>
+  
+   
+
+    <div class="w3-container container w3-card">
+        <form action="{{ url_for('reserve') }}" method="POST" class="w3-container">
+            
+            <div class="form-group">
+                <label for="date">Select Date</label>
+                <input type="date" id="date" name="date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="time">Select Time</label>
+                <input type="time" id="time" name="time" required>
+            </div>
+
+            <div class="form-group">
+                <label for="purpose">Purpose</label>
+                <input type="text" id="purpose" name="purpose" placeholder="Enter purpose for reservation" required>
+            </div>
+            <div class="form-group">
+            <label for="year">Year Level:</label>
+            <input type="text" id="year" name="year" required>
+            </div>
+
+            <div class="form-group">
+            <label for="course">Course:</label>
+            <select id="course" name="course" required>
+                <option value="">Select Course</option>
+                <option value="BSIT">BS Information Technology</option>
+                <option value="BSCS">BS Computer Science</option>
+                <option value="BSIS">BS Information Systems</option>
+                <option value="BSECE">BS Electronics Engineering</option>
+                <option value="BSME">BS Mechanical Engineering</option>
+                <option value="BEED">Bachelor of Elementary Education</option>
+                <option value="BSBA">Business Administration</option>
+                <option value="BSA">BS Accounting</option>
+                <option value="BSN">BS Nursing</option>
+                <option value="BSCE">BS Civil Engineering</option>
+            </select>
+            </div>
+
+            <div class="form-group">
+                <label for="lab">Select Lab Room</label>
+                <select id="lab" name="lab" required>
+                    <option value="">-- Choose a Room --</option>
+                    <option value="Room 524">Room 524</option>
+                    <option value="Room 544">Room 544</option>
+                    <option value="Room 542">Room 542</option>
+                    <option value="Room 530">Room 530</option>
+                    <option value="Room 526">Room 526</option>
+                    <option value="Room 528">Room 528</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
+                <button type="submit" class="submit-button">Reserve</button>
+            </div>
+
+        </form>
+    </div>
+
+</body>
+</html>

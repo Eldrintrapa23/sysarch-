@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remaining Sessions</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        .session-count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 15px;
+        }
+        .back-button {
+            margin-top: 20px;
+        }
+        .back-button:hover {
+            background: darkred;    
+        }
+
+        .content {
+            padding: 20px;
+        }
+        .header {
+            font-size: 32px;
+            font-weight: bold;
+            border-bottom: 1px solid #d1c23b;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="content">
+        <div class = "header">Remaining Sessions</div>
+    </div>
+
+    <div class="w3-container container w3-card">
+        <p><strong>Course:</strong> {{ user[4] }}</p>
+
+        {% if user[4] == 'BSIT' %}
+            <p class="sessions-count">You have <span style="color: green;">30</span> sessions available.</p>
+        {% else %}
+            <p class="sessions-count">You have <span style="color: green;">15</span> sessions available.</p>
+        {% endif %}
+
+        <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
+    </div>
+
+</body>
+</html>

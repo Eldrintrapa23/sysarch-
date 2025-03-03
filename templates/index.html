@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        /* General Reset */
+        body, h1, h2, form, input, button {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body Styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: url("{{ url_for('static', filename='images/bg-bg.png') }}") no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }   
+
+        /* Form Container */
+        .form-container {
+    background: white;
+    padding: 3rem; /* Increased padding */
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 450px; /* Increased max width */
+    text-align: center;
+    position: relative;
+        }
+
+        /* Logo Styling */
+        .logo {
+            width: 150px; /* Adjust size */
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        /* Heading */
+        h1 {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        /* Flash Messages */
+        .flash-messages {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 10px;
+            animation: fadeOut 5s forwards; /* Adds animation to fade out */
+        }
+
+        .flash-messages p {
+            background-color: #dc3545;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* Input Fields */
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #007bff;
+        }
+
+        /* Buttons */
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-btn {
+            background-color: #007bff;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .login-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .register-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .register-btn:hover {
+            background-color: #218838;
+        }
+
+        /* Link Styling */
+        a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="form-container">
+        <!-- CCS Logo -->
+        <img src="{{ url_for('static', filename='images/ccs-bg.png') }}" alt="CCS Logo" class="logo">
+
+        <h1>CCS Sit-in Monitoring System</h1>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+
+            <button type="submit" class="login-btn">Login</button>
+            <button type="button" class="register-btn" onclick="redirectToRegister()">Register</button>
+        </form>
+    </div>
+
+    <script>
+        function redirectToRegister() {
+            window.location.href = "{{ url_for('register') }}";
+        }
+    </script>
+
+</body>
+</html>

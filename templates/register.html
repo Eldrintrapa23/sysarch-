@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: url("{{ url_for('static', filename='images/bg-bg.png') }}") no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            width: 400px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .flash-messages {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .flash-messages p {
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            margin-top: 10px;
+            width: 100%;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        input[type="submit"] {
+            background: #28a745;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 15px;
+        }
+        input[type="submit"]:hover {
+            background: #218838;
+        }
+        .login-link {
+            margin-top: 15px;
+        }
+        .login-link a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Register</h1>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('register') }}" method="POST">
+            <label for="idno">ID Number:</label>
+            <input type="text" id="idno" name="idno" required>
+
+            <label for="lastname">Last Name:</label>
+            <input type="text" id="lastname" name="lastname" required>
+
+            <label for="firstname">First Name:</label>
+            <input type="text" id="firstname" name="firstname" required>
+
+            <label for="middlename">Middle Name:</label>
+            <input type="text" id="middlename" name="middlename">
+
+            <label for="course">Course:</label>
+            <select id="course" name="course" required>
+                <option value="">Select Course</option>
+                <option value="BSIT">BS Information Technology</option>
+                <option value="BSCS">BS Computer Science</option>
+                <option value="BSIS">BS Information Systems</option>
+                <option value="BSECE">BS Electronics Engineering</option>
+                <option value="BSME">BS Mechanical Engineering</option>
+                <option value="BEED">Bachelor of Elementary Education</option>
+                <option value="BSBA">Business Administration</option>
+                <option value="BSA">BS Accounting</option>
+                <option value="BSN">BS Nursing</option>
+                <option value="BSCE">BS Civil Engineering</option>
+            </select>
+
+            <label for="year_level">Year Level:</label>
+            <input type="text" id="year_level" name="year_level" required>
+
+            <label for="email_address">Email Address:</label>
+            <input type="email" id="email_address" name="email_address" required>
+
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+
+            <input type="submit" value="Register">
+        </form>
+
+        <div class="login-link">
+            <p>Already have an account? <a href="{{ url_for('home') }}">Login</a></p>
+        </div>
+    </div>
+</body>
+</html>
