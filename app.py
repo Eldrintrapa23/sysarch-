@@ -36,7 +36,7 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-
+    
 init_db()
 
 # Home route (Dashboard or Welcome page)
@@ -81,6 +81,14 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
+        # Hardcoded admin credentials
+        admin_username = 'admin'
+        admin_password = 'admin123'
+
+        if username == admin_username and password == admin_password:
+            session['admin_username'] = admin_username
+            return redirect(url_for('admin_dashboard'))
 
         with sqlite3.connect('users.db') as conn:
             cursor = conn.cursor()
@@ -247,8 +255,35 @@ def sessions():
 
     return render_template('sessions.html', user=user)
 
+@app.route('/admin_login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
 
+        # Hardcoded admin credentials
+        admin_username = 'admin'
+        admin_password = 'admin123'
 
+        if username == admin_username and password == admin_password:
+            session['admin_username'] = admin_username
+            return redirect(url_for('admin_dashboard'))  
+        else:
+            flash("Invalid admin username or password!", "danger")
+            return redirect(url_for('admin_login'))
+
+    return render_template('admin_login.html')  # Ensure admin_login.html exists
+
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    if 'admin_username' not in session:
+        flash("Please log in as admin first!", "danger")
+        return redirect(url_for('login'))
+    
+    return render_template('admin_dashboard.html')  # Ensure admin_dashboard.html exists
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+ 
