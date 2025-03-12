@@ -180,7 +180,14 @@ def edit_profile():
 # Additional Pages
 @app.route('/announcement')
 def announcement():
-    return render_template('announcement.html')
+    with sqlite3.connect('users.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT title, admin, message, date_posted FROM announcements ORDER BY created_at DESC')
+        announcements = cursor.fetchall()
+    
+    return render_template('announcement.html', announcements=announcements)
+
+
 
 @app.route('/sitrules')
 def sit_rules():
@@ -290,9 +297,10 @@ def admin_dashboard():
     cur.execute('SELECT COUNT(*) FROM sit_in')
     total_sit_in = cur.fetchone()[0]
 
-    # Get announcements
-    cur.execute('SELECT admin, message, date_posted FROM announcements ORDER BY date_posted DESC')
-    announcements = [{'admin': row[0], 'message': row[1], 'date_posted': row[2]} for row in cur.fetchall()]
+    # Get announcements (including title and content)
+    cur.execute('SELECT id, admin, message, date_posted FROM announcements ORDER BY date_posted DESC')
+    announcements = [{'id': row[0], 'admin': row[1], 'message': row[2], 'date_posted': row[3]} for row in cur.fetchall()]
+
 
     conn.close()
 
@@ -303,18 +311,20 @@ def admin_dashboard():
 @app.route('/post_announcement', methods=['POST'])
 def post_announcement():
     if request.method == 'POST':
-        admin = "CCS Admin"  # Set the admin name
+        title = request.form['title']
         message = request.form['announcement']
-        date_posted = datetime.today().strftime('%Y-%m-%d')
+        admin = "Admin"  # You can adjust this to the logged-in admin's name
+        date_posted = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        conn = sqlite3.connect('users.db')
-        cur = conn.cursor()
-        cur.execute('INSERT INTO announcements (admin, message, date_posted) VALUES (?, ?, ?)',
-                    (admin, message, date_posted))
-        conn.commit()
-        conn.close()
-
-        return redirect(url_for('admin_dashboard'))
+        if title and message:
+            with sqlite3.connect('users.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('INSERT INTO announcements (title, content, admin, message, date_posted) VALUES (?, ?, ?, ?, ?)', 
+                               (title, message, admin, message, date_posted))
+                conn.commit()
+        
+        flash('Announcement posted successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))  # Adjust the redirect if needed
 
 @app.route('/')
 def posted():
@@ -373,19 +383,35 @@ def feedback_report():
 def reservation():
     return render_template('adminreserve.html')
 
+from datetime import datetime
+
 @app.route('/create_announcement', methods=['POST'])
 def create_announcement():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        
+        admin = 'Admin'
+        date_posted = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
         with sqlite3.connect('users.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute('INSERT INTO announcements (title, content) VALUES (?, ?)', (title, content))
+            cur = conn.cursor()
+            cur.execute('INSERT INTO announcements (title, content, admin, date_posted) VALUES (?, ?, ?, ?)',
+                        (title, content, admin, date_posted))
             conn.commit()
-        
-        flash('Announcement created successfully!', 'success')
-        return redirect(url_for('home'))
+
+        flash('Announcement posted successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    
+@app.route('/delete_announcement/<int:id>', methods=['POST'])
+def delete_announcement(id):
+    with sqlite3.connect('users.db') as conn:
+        cur = conn.cursor()
+        cur.execute('DELETE FROM announcements WHERE id = ?', (id,))
+        conn.commit()
+    
+    flash('Announcement deleted successfully!', 'success')
+    return redirect(url_for('admin_dashboard'))
 
 
 

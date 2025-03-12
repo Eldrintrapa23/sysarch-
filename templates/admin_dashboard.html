@@ -47,14 +47,15 @@
         }
         .logout-btn {
             background-color: #dc3545;
-            color: #fff;
+            color: white;
             padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
             border: none;
-            border-radius: 4px;
-            font-size: 14px;
             cursor: pointer;
-            transition: background-color 0.3s;
-        }
+            outline: none; /* Remove the outline */
+}
         .logout-btn:hover {
             background-color: #c82333;
         }
@@ -166,6 +167,42 @@
                 grid-template-columns: 1fr;
             }
         }
+
+    .btn-delete {
+        background-color: #ff4d4d;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 5px;
+    }
+    .btn-delete:hover {
+        background-color: #cc0000;
+    }
+
+    .dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.alert-success {
+    grid-column: span 2;
+    text-align: center;
+    margin-bottom: 10px;
+    background-color: #dff0d8;
+    color: #3c763d;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+}
+
+</style>
+
+</style>
     </style>
 </head>
 <body>
@@ -182,11 +219,35 @@
         <li><a href="{{ url_for('feedback_report') }}">Feedback Reports</a></li>
         <li><a href="{{ url_for('reservation') }}">Reservation</a></li>
     </ul>
-    <button class="logout-btn" onclick="location.href='{{ url_for('logout') }}'">Logout</button>
+    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
 </div>
 
 <!-- Dashboard -->
 <div class="dashboard">
+
+    <!-- Success Message Section -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div style="
+                grid-column: span 2;
+                text-align: center;
+                margin-bottom: 10px;
+                background-color: #dff0d8;
+                color: #3c763d;
+                padding: 10px;
+                border-radius: 5px;
+                font-size: 16px;
+                font-weight: bold;
+                box-shadow: 0px 4px 8px rgba(0,0,0,0.1);
+            ">
+                {% for category, message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+
     <!-- Statistics Section -->
     <div class="section stats">
         <div class="section-header">📊 Statistics</div>
@@ -202,6 +263,7 @@
     <div class="section announcements">
         <div class="section-header">📢 Announcement</div>
         <form action="{{ url_for('post_announcement') }}" method="POST">
+            <input type="text" name="title" placeholder="Title" required>
             <textarea name="announcement" placeholder="New Announcement..." required></textarea>
             <button type="submit" class="btn-submit">Submit</button>
         </form>
@@ -211,10 +273,20 @@
                 <div class="announcement-item">
                     <strong>{{ announcement.admin }} | {{ announcement.date_posted }}</strong>
                     <p>{{ announcement.message }}</p>
+                    <form action="{{ url_for('delete_announcement', id=announcement.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn-delete">Delete</button>
+                    </form>
                 </div>
             {% endfor %}
         </div>
     </div>
+
+</div>
+
+</div>
+
+</div>
+
 </div>
 
 <!-- Chart.js -->

@@ -21,11 +21,25 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+        .announcement-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .announcement-item strong {
+            display: block;
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .announcement-item p {
+            margin: 0;
+            color: #555;
         }
         .back-button {
             margin-top: 15px;
         }
-
         .content {
             padding: 20px;
         }
@@ -39,22 +53,24 @@
 </head>
 <body>
 
-    <div class="content">
-        <div class="header">Announcement</div>
-    </div>
+<div class="content">
+    <div class="header">Announcements</div>
+</div>
 
+<div class="w3-container container">
+    {% if announcements %}
+        {% for announcement in announcements %}
+            <div class="card announcement-item">
+                <strong>{{ announcement[0] }} | {{ announcement[2] }}</strong>
+                <p>{{ announcement[1] }}</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No announcements yet.</p>
+    {% endif %}
 
-    <div class="w3-container container">
-        <div class="card">
-            <h3>Latest Announcements</h3>
-            <ul>
-                <li><strong>February 10, 2025:</strong> No classes on Friday due to maintenance.</li>
-                <li><strong>February 8, 2025:</strong> New sit-in session schedule available.</li>
-                <li><strong>February 5, 2025:</strong> Lab rules have been updated.</li>
-            </ul>
-            <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
-        </div>
-    </div>
+    <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
+</div>
 
 </body>
 </html>
