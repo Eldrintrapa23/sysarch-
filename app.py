@@ -3,6 +3,7 @@ import sqlite3
 import bcrypt  # For password hashing
 import os
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Secret key for session management
@@ -276,11 +277,118 @@ def admin_login():
 
 @app.route('/admin_dashboard')
 def admin_dashboard():
-    if 'admin_username' not in session:
-        flash("Please log in as admin first!", "danger")
-        return redirect(url_for('login'))
+    conn = sqlite3.connect('users.db')
+    cur = conn.cursor()
+
+    # Get statistics
+    cur.execute('SELECT COUNT(*) FROM users')
+    total_students = cur.fetchone()[0]
+
+    cur.execute('SELECT COUNT(*) FROM sit_in WHERE date = ?', (datetime.today().strftime('%Y-%m-%d'),))
+    current_sit_in = cur.fetchone()[0]
+
+    cur.execute('SELECT COUNT(*) FROM sit_in')
+    total_sit_in = cur.fetchone()[0]
+
+    # Get announcements
+    cur.execute('SELECT admin, message, date_posted FROM announcements ORDER BY date_posted DESC')
+    announcements = [{'admin': row[0], 'message': row[1], 'date_posted': row[2]} for row in cur.fetchall()]
+
+    conn.close()
+
+    return render_template('admin_dashboard.html', total_students=total_students,
+                           current_sit_in=current_sit_in, total_sit_in=total_sit_in,
+                           announcements=announcements)
+
+@app.route('/post_announcement', methods=['POST'])
+def post_announcement():
+    if request.method == 'POST':
+        admin = "CCS Admin"  # Set the admin name
+        message = request.form['announcement']
+        date_posted = datetime.today().strftime('%Y-%m-%d')
+
+        conn = sqlite3.connect('users.db')
+        cur = conn.cursor()
+        cur.execute('INSERT INTO announcements (admin, message, date_posted) VALUES (?, ?, ?)',
+                    (admin, message, date_posted))
+        conn.commit()
+        conn.close()
+
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/')
+def posted():
+    with sqlite3.connect('users.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT title, content, created_at FROM announcements ORDER BY created_at DESC')
+        announcements = cursor.fetchall()
     
-    return render_template('admin_dashboard.html')  # Ensure admin_dashboard.html exists
+    return render_template('posted.html', announcements=announcements)
+
+
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    students = []
+    search_query = request.form.get('search_query', '')
+    
+    with sqlite3.connect('users.db') as conn:
+        cursor = conn.cursor()
+        if search_query:
+            query = '''
+                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, username 
+                FROM users
+                WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ? OR username LIKE ?
+            '''
+            cursor.execute(query, (f'%{search_query}%', f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'))
+        else:
+            query = '''
+                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, username 
+                FROM users
+            '''
+            cursor.execute(query)
+        
+        students = cursor.fetchall()
+
+    return render_template('search.html', students=students)
+
+
+
+@app.route('/students')
+def students():
+    return render_template('students.html')
+
+@app.route('/view-sit-in-records')
+def sit_in_records():
+    return render_template('sit_in_records.html')
+
+@app.route('/sit-in-reports')
+def sit_in_report():
+    return render_template('sit_in_report.html')
+
+@app.route('/feedback-reports')
+def feedback_report():
+    return render_template('feedback_report.html')
+
+@app.route('/reservation')
+def reservation():
+    return render_template('adminreserve.html')
+
+@app.route('/create_announcement', methods=['POST'])
+def create_announcement():
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        
+        with sqlite3.connect('users.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute('INSERT INTO announcements (title, content) VALUES (?, ?)', (title, content))
+            conn.commit()
+        
+        flash('Announcement created successfully!', 'success')
+        return redirect(url_for('home'))
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
