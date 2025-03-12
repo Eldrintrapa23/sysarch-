@@ -89,6 +89,7 @@ def login():
 
         if username == admin_username and password == admin_password:
             session['admin_username'] = admin_username
+            flash("Admin login successful!", "success")
             return redirect(url_for('admin_dashboard'))
 
         with sqlite3.connect('users.db') as conn:
@@ -100,13 +101,13 @@ def login():
             session['user_id'] = user[0]
             session['username'] = user[7]
             session['profile_pic'] = user[10]
+            flash("Login successful! Welcome to the student dashboard.", "success")
             return redirect(url_for('student_dashboard'))  
         else:
             flash("Invalid username or password!", "danger")
             return redirect(url_for('home'))
 
     return render_template('login.html')  # Ensure login.html exists
-
 # Student Dashboard
 @app.route('/student')
 def student_dashboard():
@@ -382,8 +383,6 @@ def feedback_report():
 @app.route('/reservation')
 def reservation():
     return render_template('adminreserve.html')
-
-from datetime import datetime
 
 @app.route('/create_announcement', methods=['POST'])
 def create_announcement():

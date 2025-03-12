@@ -80,7 +80,7 @@
             height: 100%;
             object-fit: cover;
         }
-        .flash-container {
+     .flash-container {
             position: fixed;
             top: 50%;
             left: 50%;
@@ -88,18 +88,23 @@
             z-index: 1000;
         }
         .flash-box {
-            width: 250px;
-            height: 100px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            font-weight: bold;
-            border: 2px solid #000;
-            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
-            background-color: white;
-        }
+    width: 250px;
+    height: 100px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    border: 2px solid #000;
+    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
+    background-color: #3ad30b !important; /* Bright green */
+    color: black; /* Ensures text is readable */
+}
+
+
+
+
     </style>
 </head>
 <body>
@@ -133,17 +138,18 @@
         </div>
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="flash-container">
-                {% for category, message in messages %}
-                    <div class="flash-box w3-panel w3-{{ 'green' if category == 'success' else 'red' }} w3-padding w3-round">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
+   {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-container">
+            {% for category, message in messages %}
+                <div class="flash-box w3-panel w3-{{ 'green' if category == 'success' else 'red' }} w3-padding w3-round">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
 
     <script>
         setTimeout(() => {
