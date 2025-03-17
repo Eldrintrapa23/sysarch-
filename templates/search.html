@@ -15,7 +15,7 @@
 
         /* Navbar */
         .navbar {
-            background-color: #007bff;
+            background-color:#20e6d2;
             color: #fff;
             padding: 15px 20px;
             display: flex;
@@ -104,7 +104,7 @@
             text-align: left;
         }
         th {
-            background-color: #309cce;
+            background-color:  #2c04a2;
             color: white;
         }
         tr:hover {
@@ -120,14 +120,16 @@
     <ul class="nav-links">
         <li><a href="{{ url_for('admin_dashboard') }}">Home</a></li>
         <li><a href="{{ url_for('search') }}">Search</a></li>
-        <li><a href="#">Students</a></li>
-        <li><a href="#">View Sit-in Records</a></li>
-        <li><a href="#">Sit-in Reports</a></li>
-        <li><a href="#">Feedback Reports</a></li>
-        <li><a href="#">Reservation</a></li>
+        <li><a href="{{ url_for('students') }}">Students</a></li>
+        <li><a href="{{ url_for('current_sit_in') }}">Sit-in</a></li>
+        <li><a href="{{ url_for('sit_in_records') }}">View Sit-in Records</a></li>
+        <li><a href="{{ url_for('sit_in_report') }}">Sit-in Reports</a></li>
+        <li><a href="{{ url_for('feedback_report') }}">Feedback Reports</a></li>
+        <li><a href="{{ url_for('reservation') }}">Reservation</a></li>
     </ul>
     <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
 </div>
+
 
 <div class="container">
     <h2>Registered Students</h2>

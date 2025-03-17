@@ -9,14 +9,28 @@
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container-wrapper {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
         }
         .container {
-            max-width: 500px;
-            margin: 50px auto;
+            width: 45%;
             background: white;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 5px;
         }
         .form-group {
             margin-bottom: 12px;
@@ -26,34 +40,56 @@
             display: block;
             margin-bottom: 5px;
         }
-        .form-group input, .form-group select {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 5px;
+            box-sizing: border-box;
         }
         .button-group {
             display: flex;
             justify-content: space-between;
             margin-top: 15px;
         }
-        .back-button{
-
-            margin-top: 15px;
-        }
-        
-        
-        .submit-button {
-            margin-top: 15px;
-        }
         .submit-button {
             background-color: green;
             color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
         }
         .submit-button:hover {
-            background: darkgreen;
+            background-color: darkgreen;
         }
-
+        .status-section {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .status-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #e7f3fe;
+            border-left: 5px solid #2196F3;
+            border-radius: 5px;
+        }
+        .status-item strong {
+            color: #333;
+        }
+        .status-pending {
+            color: #ffa500;
+            font-weight: bold;
+            background-color: #fff3cd;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
         .content {
             padding: 20px;
         }
@@ -63,19 +99,27 @@
             border-bottom: 1px solid #d1c23b;
             padding-bottom: 10px;
         }
+
     </style>
 </head>
 <body>
 
-   <div class ="content">
-        <div class ="header">Lab Reservation</div>
-   </div>
-  
-   
+<div class="container-wrapper">
 
-    <div class="w3-container container w3-card">
-        <form action="{{ url_for('reserve') }}" method="POST" class="w3-container">
-            
+    <!-- Reservation Form -->
+    <div class="container">
+        <div class="header">Lab Reservation</div>
+        <form action="{{ url_for('reserve') }}" method="POST">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_number">ID Number</label>
+                <input type="text" id="id_number" name="id_number" placeholder="Enter your ID number" required>
+            </div>
+
             <div class="form-group">
                 <label for="date">Select Date</label>
                 <input type="date" id="date" name="date" required>
@@ -90,26 +134,27 @@
                 <label for="purpose">Purpose</label>
                 <input type="text" id="purpose" name="purpose" placeholder="Enter purpose for reservation" required>
             </div>
+
             <div class="form-group">
-            <label for="year">Year Level:</label>
-            <input type="text" id="year" name="year" required>
+                <label for="year">Year Level</label>
+                <input type="text" id="year" name="year" placeholder="e.g., 3rd Year" required>
             </div>
 
             <div class="form-group">
-            <label for="course">Course:</label>
-            <select id="course" name="course" required>
-                <option value="">Select Course</option>
-                <option value="BSIT">BS Information Technology</option>
-                <option value="BSCS">BS Computer Science</option>
-                <option value="BSIS">BS Information Systems</option>
-                <option value="BSECE">BS Electronics Engineering</option>
-                <option value="BSME">BS Mechanical Engineering</option>
-                <option value="BEED">Bachelor of Elementary Education</option>
-                <option value="BSBA">Business Administration</option>
-                <option value="BSA">BS Accounting</option>
-                <option value="BSN">BS Nursing</option>
-                <option value="BSCE">BS Civil Engineering</option>
-            </select>
+                <label for="course">Course</label>
+                <select id="course" name="course" required>
+                    <option value="">Select Course</option>
+                    <option value="BSIT">BS Information Technology</option>
+                    <option value="BSCS">BS Computer Science</option>
+                    <option value="BSIS">BS Information Systems</option>
+                    <option value="BSECE">BS Electronics Engineering</option>
+                    <option value="BSME">BS Mechanical Engineering</option>
+                    <option value="BEED">Bachelor of Elementary Education</option>
+                    <option value="BSBA">Business Administration</option>
+                    <option value="BSA">BS Accounting</option>
+                    <option value="BSN">BS Nursing</option>
+                    <option value="BSCE">BS Civil Engineering</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -126,12 +171,49 @@
             </div>
 
             <div class="button-group">
-                <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
+                <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red">Back</a>
                 <button type="submit" class="submit-button">Reserve</button>
             </div>
-
         </form>
     </div>
+
+    <!-- Status Section -->
+<div class="container status-section">
+    <div class="header">Reservation Status</div>
+    {% if reservations %}
+        {% for reservation in reservations %}
+            <div class="status-item">
+                <strong>Status:</strong>
+                {% if reservation[8] == 'approved' %}
+                    <span style="color: green; font-weight: bold;">{{ reservation[8] }}</span>
+                {% elif reservation[8] == 'rejected' %}
+                    <span style="color: red; font-weight: bold;">{{ reservation[8] }}</span>
+                {% else %}
+                    <span class="status-pending">{{ reservation[8] }}</span>
+                {% endif %}
+            </div>
+            <div class="status-item">
+                <strong>Date:</strong> {{ reservation[0] }}
+            </div>
+            <div class="status-item">
+                <strong>Time:</strong> {{ reservation[1] }}
+            </div>
+            <div class="status-item">
+                <strong>Lab Room:</strong> {{ reservation[5] }}
+            </div>
+            <div class="status-item">
+                <strong>Purpose:</strong> {{ reservation[2] }}
+            </div>
+            <hr style="border-top: 1px solid #ccc;">
+        {% endfor %}
+    {% else %}
+        <p>No reservation found.</p>
+    {% endif %}
+</div>
+
+
+
+</div>
 
 </body>
 </html>

@@ -230,26 +230,44 @@ def reserve():
         flash("Please log in first!", "danger")
         return redirect(url_for('login'))
 
-    if request.method == 'POST':
-        date = request.form['date']
-        time = request.form['time']
-        purpose = request.form['purpose']
-        year = request.form['year']  # 🔹 Add this
-        course = request.form['course']
-        lab = request.form['lab']
+    reservations = []  # Store all reservations
 
-        with sqlite3.connect('users.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO reservation (user_id, date, time, purpose, year, course, lab)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (session['user_id'], date, time, purpose, course, year, lab))
+    with sqlite3.connect('users.db') as conn:
+        cursor = conn.cursor()
+        
+        # Fetch ALL reservations of the student
+        cursor.execute("""
+            SELECT date, time, purpose, year, course, lab, name, id_number, status 
+            FROM reservation 
+            WHERE user_id = ? 
+            ORDER BY id DESC
+        """, (session['user_id'],))
+        reservations = cursor.fetchall()
+
+        if request.method == 'POST':
+            date = request.form['date']
+            time = request.form['time']
+            purpose = request.form['purpose']
+            year = request.form['year']
+            course = request.form['course']
+            lab = request.form['lab']
+            name = request.form['name']
+            id_number = request.form['id_number']
+
+            # Insert new reservation
+            cursor.execute("""
+                INSERT INTO reservation (user_id, date, time, purpose, year, course, lab, name, id_number, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (session['user_id'], date, time, purpose, year, course, lab, name, id_number, 'pending'))
             conn.commit()
 
-        flash("Reservation successful!", "success")
-        return redirect(url_for('student_dashboard'))
+            flash("Reservation successful!", "success")
+            return redirect(url_for('reserve'))  # Reload the page to show updated reservations
 
-    return render_template('reserve.html')
+    return render_template('reserve.html', reservations=reservations)
+
+
+
 
 @app.route('/sessions')
 def sessions():
@@ -257,12 +275,20 @@ def sessions():
         flash("Please log in first!", "danger")
         return redirect(url_for('login'))
 
+    user_id = session['user_id']  # Get the logged-in user ID
+
     with sqlite3.connect('users.db') as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT idno, lastname, firstname, middlename, course, year_level, email_address, username FROM users WHERE id = ?", (session['user_id'],))
-        user = cursor.fetchone()
+        cursor.execute("""
+            SELECT remaining_sessions 
+            FROM users
+            WHERE id = ?
+        """, (user_id,))
+        student = cursor.fetchone()
 
-    return render_template('sessions.html', user=user)
+    return render_template('sessions.html', student=student)
+
+
 
 @app.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
@@ -364,9 +390,50 @@ def search():
 
 
 
-@app.route('/students')
+
+from flask import request, render_template
+
+@app.route('/students', methods=['GET', 'POST'])
 def students():
-    return render_template('students.html')
+    search_query = request.form.get('search_query') if request.method == 'POST' else None
+    
+    with sqlite3.connect('users.db') as conn:
+        cursor = conn.cursor()
+        if search_query:
+            query = '''
+                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, username, remaining_sessions
+                FROM users
+                WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ? OR username LIKE ?
+            '''
+            cursor.execute(query, (f'%{search_query}%', f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'))
+        else:
+            query = '''
+                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, username , remaining_sessions
+                FROM users
+            '''
+            cursor.execute(query)
+        
+        students = cursor.fetchall()
+
+    return render_template('students.html', students=students)
+
+
+@app.route('/delete_student/<int:student_id>', methods=['POST'])
+def delete_student(student_id):
+    with sqlite3.connect('users.db') as conn:
+        cursor = conn.cursor()
+        query = 'DELETE FROM users WHERE idno = ?'
+        cursor.execute(query, (student_id,))
+        conn.commit()
+
+    flash('Student deleted successfully', 'success')
+    return redirect(url_for('students'))
+
+
+
+@app.route('/current-sit-in')
+def current_sit_in():
+    return render_template('sitin.html')
 
 @app.route('/view-sit-in-records')
 def sit_in_records():
@@ -382,7 +449,29 @@ def feedback_report():
 
 @app.route('/reservation')
 def reservation():
-    return render_template('adminreserve.html')
+    with sqlite3.connect('users.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id_number, name, date, time, purpose, year, course, lab, status FROM reservation")
+        reservations = cursor.fetchall()
+    
+    return render_template('adminreserve.html', reservations=reservations)
+
+# ✅ Fixed: Added @ before app.route
+@app.route('/update_reservation/<int:res_id>/<string:action>', methods=['POST'])
+def update_reservation(res_id, action):
+    new_status = 'approved' if action == 'approve' else 'rejected'
+    
+    with sqlite3.connect('users.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE reservation SET status = ? WHERE id_number = ?", 
+                       (new_status, res_id))
+        conn.commit()
+
+    flash(f"Reservation {new_status}!", "success")
+    return redirect(url_for('reservation'))
+
+
+
 
 @app.route('/create_announcement', methods=['POST'])
 def create_announcement():
@@ -411,6 +500,22 @@ def delete_announcement(id):
     
     flash('Announcement deleted successfully!', 'success')
     return redirect(url_for('admin_dashboard'))
+
+@app.route('/update_remaining_sessions', methods=['POST'])
+def update_remaining_sessions():
+    if 'user_id' not in session:
+        flash("Please log in first!", "danger")
+        return redirect(url_for('login'))
+
+    new_sessions = request.form.get('remaining_sessions')
+
+    with sqlite3.connect('users.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET remaining_sessions = ? WHERE idno = ?", (new_sessions, session['user_id']))
+        conn.commit()
+
+    flash("Remaining sessions updated successfully!", "success")
+    return redirect(url_for('sessions'))
 
 
 
