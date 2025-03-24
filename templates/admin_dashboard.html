@@ -84,10 +84,10 @@
         .section-header {
             font-size: 18px;
             font-weight: bold;
-            color: #007bff;
+            color:  #fd944e;
             margin-bottom: 15px;
             padding-bottom: 5px;
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid #fd944e;
         }
 
         /* Statistics Section */
@@ -124,7 +124,7 @@
             outline: none;
         }
         .btn-submit {
-            background-color: #007bff;
+            background-color: #e9772bf8;
             color: #fff;
             padding: 10px;
             border: none;
@@ -134,15 +134,17 @@
             transition: background-color 0.3s;
         }
         .btn-submit:hover {
-            background-color: #0056b3;
+            background-color:  #fd944e;
         }
+        
 
         /* Posted Announcements */
-        .posted-announcements h3 {
-            font-size: 16px;
-            color: #333;
-            margin-bottom: 10px;
-        }
+        .posted-announcements {
+    max-height: 300px; /* Adjust height as needed */
+    overflow-y: auto;
+    padding-right: 10px; /* Optional: Adds space for scrollbar */
+}
+
         .announcement-item {
             background-color: #f9f9f9;
             padding: 12px;
@@ -152,7 +154,7 @@
             transition: background-color 0.3s;
         }
         .announcement-item strong {
-            color: #007bff;
+            color:  #fd944e;
             display: block;
             margin-bottom: 4px;
         }
@@ -244,71 +246,159 @@
         </div>
     </div>
 
-    <!-- Announcements Section -->
-    <div class="section announcements">
+      <!-- Announcements Section -->
+      <div class="section announcements">
         <div class="section-header">📢 Announcement</div>
-        <form action="{{ url_for('post_announcement') }}" method="POST">
-            <input type="text" name="title" placeholder="Title" required>
-            <textarea name="announcement" placeholder="New Announcement..." required></textarea>
-            <button type="submit" class="btn-submit">Submit</button>
+        <form id="announcementForm" action="{{ url_for('post_announcement') }}" method="POST">
+          <input type="text" name="title" placeholder="Title" required>
+          <textarea name="announcement" placeholder="New Announcement..." required></textarea>
+          <button type="submit" class="btn-submit">Submit</button>
         </form>
         <div class="posted-announcements">
-            <h3>Posted Announcements</h3>
-            {% for announcement in announcements %}
-                <div class="announcement-item">
-                    <strong>{{ announcement.admin }} | {{ announcement.date_posted }}</strong>
-                    <p>{{ announcement.message }}</p>
-                    <form action="{{ url_for('delete_announcement', id=announcement.id) }}" method="POST" style="display:inline;">
-                        <button type="submit" class="btn-delete">Delete</button>
-                    </form>
-                </div>
-            {% endfor %}
+          <h3>Posted Announcements</h3>
+          {% for announcement in announcements %}
+            <div class="announcement-item" id="announcement-{{ announcement.id }}">
+              <strong>{{ announcement.admin }} | {{ announcement.date_posted }}</strong>
+              <p>{{ announcement.message }}</p>
+              <button type="button" class="btn-delete" onclick="announcementDelete('{{ announcement.id }}')">
+                Delete
+            </button>
+              </button>
+            </div>
+          {% endfor %}
         </div>
+      </div>
     </div>
+  
+    <!-- Flash Message Container (Optional) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-container">
+          {% for category, message in messages %}
+            <div class="flash-box w3-panel w3-{{ 'green' if category == 'success' else 'red' }} w3-padding w3-round">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+  
+    <!-- JavaScript for Announcement Form Submission -->
+    <script>
+      document.getElementById('announcementForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const title = this.title.value.trim();
+    const announcement = this.announcement.value.trim();
+  
+    if (!title || !announcement) {
+        alert("Title and announcement cannot be empty.");
+        return;
+    }
 
-</div>
+    const formData = new FormData(this);
+    fetch(this.action, { method: 'POST', body: formData })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert("Announcement posted successfully!");
+                window.location.reload();
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Error posting announcement:", error);
+            alert("An error occurred while posting the announcement.");
+        });
+});
 
-</div>
+    </script>
+  
+    <!-- JavaScript for Handling Announcement Deletion with Message -->
+    <script>
+     function announcementDelete(id) {
+    if (confirm("Are you sure you want to delete this announcement?")) {
+        fetch(`/deleteannouncement/${id}`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                alert(data.message);
+                document.getElementById(`announcement-${id}`).remove();  // Remove the announcement without reloading
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error("Error deleting announcement:", error);
+            alert("An error occurred while deleting the announcement.");
+        });
+    }
+}
 
-</div>
-
-</div>
-
-
-<!-- Chart.js -->
+    </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const ctx = document.getElementById('sitInChart').getContext('2d');
 const sitInChart = new Chart(ctx, {
-    type: 'pie',
+    type: 'line',
     data: {
         labels: ['C#', 'C', 'Java', 'ASP.Net', 'Php'],
         datasets: [{
+            label: 'Sit-in Data',
             data: [20, 15, 25, 10, 30],
-            backgroundColor: ['#f44336', '#ff9800', '#ffeb3b', '#8bc34a', '#03a9f4'],
+            borderColor: '#007bff',  // Line color
+            backgroundColor: 'rgba(0, 123, 255, 0.2)', // Light blue background (optional)
+            fill: false,  // No area fill
+            tension: 0.3  // Smooth line effect
         }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Programming Languages'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Sit-in Count'
+                },
+                beginAtZero: true
+            }
+        }
     }
 });
 </script>
 
+<!-- Flash Message Container (Optional) -->
 {% with messages = get_flashed_messages(with_categories=true) %}
-{% if messages %}
+  {% if messages %}
     <div class="flash-container">
-        {% for category, message in messages %}
-            <div class="flash-box w3-panel w3-{{ 'green' if category == 'success' else 'red' }} w3-padding w3-round">
-                {{ message }}
-            </div>
-        {% endfor %}
+      {% for category, message in messages %}
+        <div class="flash-box w3-panel w3-{{ 'green' if category == 'success' else 'red' }} w3-padding w3-round">
+          {{ message }}
+        </div>
+      {% endfor %}
     </div>
-{% endif %}
+  {% endif %}
 {% endwith %}
 
 <script>
-setTimeout(() => {
+  // Wait 2 seconds (2000 milliseconds) then hide flash messages
+  setTimeout(() => {
     document.querySelectorAll('.flash-box').forEach(msg => {
-        msg.style.display = 'none';
+      msg.style.display = 'none';
     });
-}, 2000);
+  }, 2000);
 </script>
 
 </body>

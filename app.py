@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import sqlite3
 import bcrypt  # For password hashing
 import os
@@ -318,10 +318,10 @@ def admin_dashboard():
     cur.execute('SELECT COUNT(*) FROM users')
     total_students = cur.fetchone()[0]
 
-    cur.execute('SELECT COUNT(*) FROM sit_in WHERE date = ?', (datetime.today().strftime('%Y-%m-%d'),))
+    cur.execute('SELECT COUNT(*) FROM current_sit_in WHERE date = ?', (datetime.today().strftime('%Y-%m-%d'),))
     current_sit_in = cur.fetchone()[0]
 
-    cur.execute('SELECT COUNT(*) FROM sit_in')
+    cur.execute('SELECT COUNT(*) FROM sit_in_records WHERE date = ?', (datetime.today().strftime('%Y-%m-%d'),))
     total_sit_in = cur.fetchone()[0]
 
     # Get announcements (including title and content)
@@ -337,21 +337,38 @@ def admin_dashboard():
 
 @app.route('/post_announcement', methods=['POST'])
 def post_announcement():
-    if request.method == 'POST':
-        title = request.form['title']
-        message = request.form['announcement']
-        admin = "Admin"  # You can adjust this to the logged-in admin's name
-        date_posted = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    title = request.form.get('title')
+    message = request.form.get('announcement')
+    admin = "Admin"  # You can adjust this to the logged-in admin's name
+    date_posted = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        if title and message:
+    if title and message:
+        try:
             with sqlite3.connect('users.db') as conn:
                 cursor = conn.cursor()
-                cursor.execute('INSERT INTO announcements (title, content, admin, message, date_posted) VALUES (?, ?, ?, ?, ?)', 
-                               (title, message, admin, message, date_posted))
+                cursor.execute(
+                    'INSERT INTO announcements (title, content, admin, message, date_posted) VALUES (?, ?, ?, ?, ?)', 
+                    (title, message, admin, message, date_posted)
+                )
                 conn.commit()
-        
-        flash('Announcement posted successfully!', 'success')
-        return redirect(url_for('admin_dashboard'))  # Adjust the redirect if needed
+            return jsonify({"status": "success", "message": "Announcement posted successfully!"})
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)})
+    else:
+        return jsonify({"status": "error", "message": "Title and announcement are required."})
+    
+@app.route('/deleteannouncement/<int:id>', methods=['POST'])
+def deleteannouncement(id):
+    try:
+        with sqlite3.connect('users.db') as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM announcements WHERE id = ?", (id,))
+            conn.commit()
+        return jsonify({"status": "success", "message": "Announcement deleted successfully!"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+
 
 @app.route('/')
 def posted():
@@ -372,14 +389,14 @@ def search():
         cursor = conn.cursor()
         if search_query:
             query = '''
-                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, username 
+                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, username, remaining_sessions
                 FROM users
                 WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ? OR username LIKE ?
             '''
             cursor.execute(query, (f'%{search_query}%', f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'))
         else:
             query = '''
-                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, username 
+                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, username, remaining_sessions
                 FROM users
             '''
             cursor.execute(query)
@@ -388,10 +405,6 @@ def search():
 
     return render_template('search.html', students=students)
 
-
-
-
-from flask import request, render_template
 
 @app.route('/students', methods=['GET', 'POST'])
 def students():
@@ -429,15 +442,132 @@ def delete_student(student_id):
     flash('Student deleted successfully', 'success')
     return redirect(url_for('students'))
 
+@app.route('/sit_in', methods=['POST'])
+def sit_in():
+    data = request.json
+    print(f"Received Data: {data}")  # Debugging log
+
+    id_number = data.get("id_number")
+    last_name = data.get("last_name")
+    first_name = data.get("first_name")
+    purpose = data.get("purpose")
+    sit_lab = data.get("lab")
+    session = data.get("session", "N/A")  
+    date = datetime.now().strftime("%Y-%m-%d")
+    login_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    if not (id_number and first_name and last_name and purpose and sit_lab):  # Fixed condition
+        return jsonify({"status": "error", "message": "All fields are required"})
+
+    try:
+        conn = sqlite3.connect("users.db")
+        cursor = conn.cursor()
+
+        # Debugging: Check if user exists in 'users' table
+        cursor.execute("SELECT firstname FROM users WHERE IDNO = ?", (id_number,))
+        user = cursor.fetchone()
+        if not user:
+            return jsonify({"status": "error", "message": "User not found in database"})
+
+        # Deduct one session from the student
+        cursor.execute("UPDATE users SET remaining_sessions = remaining_sessions - 1 WHERE IDNO = ?", (id_number,))
+
+        # Insert sit-in record
+        cursor.execute("""
+            INSERT INTO current_sit_in (id_number, last_name, first_name, purpose, sit_lab, session, date, status, login_time)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (id_number, last_name, first_name, purpose, sit_lab, session, date, "Ongoing", login_time))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({"status": "success", "message": "Sit-in submitted successfully", "redirect": "/current_sit_in"})
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
 
 
-@app.route('/current-sit-in')
+@app.route('/current_sit_in')
 def current_sit_in():
-    return render_template('sitin.html')
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+
+    # Fetch sit-in data along with remaining sessions
+    cursor.execute("""
+        SELECT c.id, c. id_number, c.last_name, c.first_name, c.purpose, c.sit_lab, u.remaining_sessions, c.status
+        FROM current_sit_in c
+        JOIN users u ON c. id_number = u.IDNO
+    """)
+    
+    sit_in_data = cursor.fetchall()
+    conn.close()
+
+    return render_template('sitin.html', sit_in_data=sit_in_data)
+
+
+
 
 @app.route('/view-sit-in-records')
 def sit_in_records():
-    return render_template('sit_in_records.html')
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM sit_in_records ORDER BY logout_time DESC")
+    records = cursor.fetchall()
+    conn.close()
+    return render_template('sit_in_records.html', records=records)
+
+
+
+@app.route('/start_sit_in', methods=['POST'])
+def start_sit_in():
+    conn = sqlite3.connect('users.db')
+    cur = conn.cursor()
+    id_number = request.form['id_number']
+    last_name = request.form("last_name")
+    first_name = request.form("first_name")
+    purpose = request.form['purpose']
+    sit_lab = request.form['sit_lab']
+    session = request.form['session']
+    login_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    cur.execute("""
+        INSERT INTO current_sit_in (id_number, last_name, first_name, purpose, sit_lab, session, login_time, date, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Ongoing')
+    """, (id_number, last_name, first_name, purpose, sit_lab, session, login_time, datetime.now().strftime('%Y-%m-%d')))
+
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for('current_sit_in'))
+
+
+@app.route('/logout_sit_in/<int:id>', methods=['POST'])
+def logout_sit_in(id):
+    conn = sqlite3.connect('users.db')
+    cur = conn.cursor()
+
+    # Retrieve the record from current_sit_in
+    cur.execute("SELECT id_number, last_name, first_name, purpose, sit_lab, login_time, date FROM current_sit_in WHERE id = ?", (id,))
+    record = cur.fetchone()
+
+    if record:
+        logout_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+       # Insert into sit_in_records with the correct login_time
+        cur.execute("""
+        INSERT INTO sit_in_records (id_number, last_name, first_name, purpose, lab, login_time, logout_time, date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (record[0], record[2], record[1], record[3], record[4], record[5], logout_time, record[6]))
+
+        # Delete from current_sit_in
+        cur.execute("DELETE FROM current_sit_in WHERE id = ?", (id,))
+        conn.commit()
+
+
+    conn.close()
+    
+    return redirect(url_for('sit_in_records'))
+
 
 @app.route('/sit-in-reports')
 def sit_in_report():

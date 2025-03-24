@@ -99,6 +99,12 @@
             border-bottom: 1px solid #d1c23b;
             padding-bottom: 10px;
         }
+        .container.status-section {
+            max-height: 400px; /* Adjust height as needed */
+            overflow-y: auto;  /* Enable vertical scrolling */
+            padding-right: 10px; /* Optional: add space for scrollbar */
+        }
+        
 
     </style>
 </head>
@@ -177,7 +183,7 @@
         </form>
     </div>
 
-    <!-- Status Section -->
+<!-- Status Section -->
 <div class="container status-section">
     <div class="header">Reservation Status</div>
     {% if reservations %}

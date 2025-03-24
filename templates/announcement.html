@@ -1,75 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Announcements</title>
-    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 800px;
-            margin: auto;
-            padding: 20px;
-        }
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            margin-bottom: 20px;
-        }
-        .announcement-item {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-        .announcement-item strong {
-            display: block;
-            color: #333;
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
-        .announcement-item p {
-            margin: 0;
-            color: #555;
-        }
-        .back-button {
-            margin-top: 15px;
-        }
-        .content {
-            padding: 20px;
-        }
-        .header {
-            font-size: 32px;
-            font-weight: bold;
-            border-bottom: 1px solid #d1c23b;
-            padding-bottom: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Announcements</title>
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      margin-bottom: 20px;
+    }
+    .announcement-item {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 10px;
+    }
+    .announcement-item strong {
+      display: block;
+      color: #333;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+    .announcement-item small {
+      display: block;
+      color: #777;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .announcement-item p {
+      margin: 0;
+      color: #555;
+    }
+    .back-button {
+      margin-top: 15px;
+    }
+    .content {
+      padding: 20px;
+    }
+    .header {
+      font-size: 32px;
+      font-weight: bold;
+      border-bottom: 1px solid #d1c23b;
+      padding-bottom: 10px;
+    }
+  </style>
 </head>
 <body>
 
 <div class="content">
-    <div class="header">Announcements</div>
+  <div class="header">Announcements</div>
 </div>
 
 <div class="w3-container container">
-    {% if announcements %}
-        {% for announcement in announcements %}
-            <div class="card announcement-item">
-                <strong>{{ announcement[0] }} | {{ announcement[2] }}</strong>
-                <p>{{ announcement[1] }}</p>
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>No announcements yet.</p>
-    {% endif %}
-
-    <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
+  {% if announcements %}
+    {% for announcement in announcements %}
+      <div class="card announcement-item">
+        <strong>{{ announcement[0] }}</strong>
+        <!-- Assuming announcement[2] contains the date and time -->
+        <small>{{ announcement[2] }}</small>
+        <p>{{ announcement[1] }}</p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p>No announcements yet.</p>
+  {% endif %}
+  
+  <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
 </div>
 
 </body>
