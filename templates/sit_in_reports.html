@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sit-in Reports</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            text-align: center;
+        }
+        .navbar {
+            background-color: #41644A;
+            color: #fff;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .nav-links {
+            list-style: none;
+            display: flex;
+            padding: 0;
+            margin: 0;
+        }
+        .nav-links li {
+            margin-right: 20px;
+        }
+        .nav-links li a {
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .nav-links li a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Buttons */
+        .buttons-container {
+            margin: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .search-box {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .reset-btn {
+            background-color: #d9534f;
+            color: white;
+        }
+        .print-btn {
+            background-color: #0275d8;
+            color: white;
+        }
+        .pdf-btn {
+            background-color: #5cb85c;
+            color: white;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+            font-size: 14px;
+        }
+        th {
+            background-color: #41644A;
+            color: white;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="logo">Admin Dashboard</div>
+    <ul class="nav-links">
+        <li><a href="{{ url_for('admin_dashboard') }}">Home</a></li>
+        <li><a href="{{ url_for('search') }}">Search</a></li>
+        <li><a href="{{ url_for('students') }}">Students</a></li>
+        <li><a href="{{ url_for('current_sit_in') }}">Sit-in</a></li>
+        <li><a href="{{ url_for('sit_in_records') }}">View Sit-in Records</a></li>
+        <li><a href="{{ url_for('sit_in_report') }}">Sit-in Reports</a></li>
+        <li><a href="{{ url_for('feedback_report') }}">Feedback Reports</a></li>
+        <li><a href="{{ url_for('reservation') }}">Reservation</a></li>
+    </ul>
+    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+</div>
+
+<h2>Generate Reports</h2>
+
+<!-- 🔍 Search Input -->
+<input type="text" class="search-box" id="search" onkeyup="searchTable()" placeholder="Search records...">
+
+<!-- 📌 Action Buttons -->
+<div class="buttons-container">
+    <button class="reset-btn" onclick="resetSessions()">Reset Sessions</button>
+    <button class="print-btn" onclick="window.print()">Print</button>
+    <button class="pdf-btn" onclick="exportToPDF()">Download PDF</button>
+</div>
+
+<div class="table-container">
+    <table id="reportTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>ID Number</th>
+                <th>Last Name</th>
+                <th>First Name</th>
+                <th>Purpose</th>
+                <th>Lab</th>
+                <th>Login Time</th>
+                <th>Logout Time</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td>{{ report[0] }}</td>
+                <td>{{ report[1] }}</td>
+                <td>{{ report[2] }}</td>
+                <td>{{ report[3] }}</td>
+                <td>{{ report[4] }}</td>
+                <td>{{ report[5] }}</td>
+                <td>{{ report[6] }}</td>
+                <td>{{ report[7] }}</td>
+                <td>{{ report[8] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // 🔍 Search Function
+    function searchTable() {
+        let input = document.getElementById("search").value.toLowerCase();
+        let rows = document.querySelectorAll("#reportTable tbody tr");
+
+        rows.forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(input) ? "" : "none";
+        });
+    }
+
+    // 🔄 Reset Sessions Function
+    function resetSessions() {
+        if (confirm("Are you sure you want to reset all student sessions?")) {
+            fetch('/reset_sessions', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => alert(data.message))
+                .catch(error => console.error('Error:', error));
+        }
+    }
+
+    // 📄 Export to PDF
+    function exportToPDF() {
+        const { jsPDF } = window.jspdf;
+        let doc = new jsPDF();
+        doc.text("Sit-in Reports", 10, 10);
+        doc.autoTable({ html: "#reportTable" });
+        doc.save("Sit-in_Reports.pdf");
+    }
+</script>
+
+</body>
+</html>

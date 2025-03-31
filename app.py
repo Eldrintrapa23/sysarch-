@@ -516,6 +516,81 @@ def sit_in_records():
     conn.close()
     return render_template('sit_in_records.html', records=records)
 
+@app.route('/sit-in-reports')
+def sit_in_reports():
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+
+    # Fetch sit-in records (detailed)
+    cursor.execute("SELECT * FROM sit_in_reports ORDER BY logout_time DESC")
+    records = cursor.fetchall()
+
+    # Fetch report data (aggregated by lab)
+    cursor.execute("SELECT sit_lab, COUNT(*) FROM sit_in_reports GROUP BY sit_lab")
+    report_data = cursor.fetchall()
+
+    conn.close()
+    return render_template('sit_in_reports.html', report_data=report_data, records=records)
+
+@app.route('/logouts/<int:id_number>')
+def logouts(id_number):
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+
+    # Fetch student's sit-in record before deleting
+    cursor.execute("SELECT * FROM sit_in_records WHERE id_number = ?", (id_number,))
+    record = cursor.fetchone()
+
+    if record:
+        # Insert the record into sit_in_reports before deleting
+        cursor.execute("""
+            INSERT INTO sit_in_reports (id_number, last_name, first_name, purpose, sit_lab, login_time, logout_time, date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (record[0], record[1], record[2], record[3], record[4], record[5], record[6], record[7]))
+
+        # Delete the record from sit_in_records
+        cursor.execute("DELETE FROM sit_in_records WHERE id_number = ?", (id_number,))
+
+        conn.commit()
+
+    conn.close()
+    
+    return redirect(url_for('sit_in_records'))  # Redirect back to the records page
+    
+
+
+@app.route('/add-sit-in', methods=['POST'])
+def add_sit_in():
+    id_number = request.form['id_number']
+    last_name = request.form['last_name']
+    first_name = request.form['first_name']
+    purpose = request.form['purpose']
+    sit_lab = request.form['sit_lab']
+    login_time = request.form['login_time']
+    logout_time = request.form['logout_time']
+    date = request.form['date']
+
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    
+    # Insert into sit_in_records
+    cursor.execute("""
+        INSERT INTO sit_in_records (id_number, last_name, first_name, purpose, sit_lab, login_time, logout_time, date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (id_number, last_name, first_name, purpose, sit_lab, login_time, logout_time, date))
+
+    # Insert into sit_in_reports (optional, if you want to store aggregated data)
+    cursor.execute("""
+        INSERT INTO sit_in_reports (id_number, last_name, first_name, purpose, sit_lab, login_time, logout_time, date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (id_number, last_name, first_name, purpose, sit_lab, login_time, logout_time, date))
+
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for('sit_in_records'))
+
+
 
 
 @app.route('/start_sit_in', methods=['POST'])
@@ -572,6 +647,18 @@ def logout_sit_in(id):
 @app.route('/sit-in-reports')
 def sit_in_report():
     return render_template('sit_in_report.html')
+
+@app.route('/reset_sessions', methods=['POST'])
+def reset_sessions():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE students SET session_active = 0")
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({"message": "All student sessions have been reset."})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
 
 @app.route('/feedback-reports')
 def feedback_report():
@@ -630,6 +717,24 @@ def delete_announcement(id):
     
     flash('Announcement deleted successfully!', 'success')
     return redirect(url_for('admin_dashboard'))
+
+@app.route('/edit-announcement', methods=['POST'])
+def edit_announcement():
+    data = request.json
+    announcement_id = data.get('id')
+    new_message = data.get('message')
+
+    if not announcement_id or not new_message:
+        return jsonify({'success': False, 'error': 'Invalid data'})
+
+    # Update the announcement in the database
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    cursor.execute("UPDATE announcements SET message = ? WHERE id = ?", (new_message, announcement_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True})
 
 @app.route('/update_remaining_sessions', methods=['POST'])
 def update_remaining_sessions():

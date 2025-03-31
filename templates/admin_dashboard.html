@@ -209,6 +209,21 @@
             box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
             background-color: rgb(80, 252, 80);
         }
+
+        .btn-edit {
+    background-color: #3498db; /* Blue color */
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-edit:hover {
+    background-color: #2980b9; /* Darker blue on hover */
+}
+
 </style>
 
 </style>
@@ -246,29 +261,33 @@
         </div>
     </div>
 
-      <!-- Announcements Section -->
-      <div class="section announcements">
-        <div class="section-header">📢 Announcement</div>
-        <form id="announcementForm" action="{{ url_for('post_announcement') }}" method="POST">
-          <input type="text" name="title" placeholder="Title" required>
-          <textarea name="announcement" placeholder="New Announcement..." required></textarea>
-          <button type="submit" class="btn-submit">Submit</button>
-        </form>
-        <div class="posted-announcements">
-          <h3>Posted Announcements</h3>
-          {% for announcement in announcements %}
-            <div class="announcement-item" id="announcement-{{ announcement.id }}">
-              <strong>{{ announcement.admin }} | {{ announcement.date_posted }}</strong>
-              <p>{{ announcement.message }}</p>
-              <button type="button" class="btn-delete" onclick="announcementDelete('{{ announcement.id }}')">
+     <!-- Announcements Section -->
+<div class="section announcements">
+    <div class="section-header">📢 Announcement</div>
+    <form id="announcementForm" action="{{ url_for('post_announcement') }}" method="POST">
+        <input type="text" name="title" placeholder="Title" required>
+        <textarea name="announcement" placeholder="New Announcement..." required></textarea>
+        <button type="submit" class="btn-submit">Submit</button>
+    </form>
+
+    <div class="posted-announcements">
+        <h3>Posted Announcements</h3>
+        {% for announcement in announcements %}
+        <div class="announcement-item" id="announcement-{{ announcement.id }}">
+            <strong>{{ announcement.admin }} | {{ announcement.date_posted }}</strong>
+            <p id="message-{{ announcement.id }}">{{ announcement.message }}</p>
+            
+            <!-- Edit and Delete Buttons -->
+            <button type="button" class="btn-edit" onclick="editAnnouncement('{{ announcement.id }}')">
+                Edit
+            </button>            
+            <button type="button" class="btn-delete" onclick="announcementDelete('{{ announcement.id }}')">
                 Delete
             </button>
-              </button>
-            </div>
-          {% endfor %}
         </div>
-      </div>
+        {% endfor %}
     </div>
+</div>
   
     <!-- Flash Message Container (Optional) -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -331,6 +350,30 @@
         .catch(error => {
             console.error("Error deleting announcement:", error);
             alert("An error occurred while deleting the announcement.");
+        });
+    }
+}
+
+function editAnnouncement(id) {
+    var messageElement = document.getElementById("message-" + id);
+    var currentText = messageElement.innerText;
+
+    // Prompt user to enter new text
+    var newText = prompt("Edit your announcement:", currentText);
+    if (newText !== null && newText.trim() !== "") {
+        // Send update request to the server
+        fetch("{{ url_for('edit_announcement') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: id, message: newText })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                messageElement.innerText = newText;
+            } else {
+                alert("Error updating announcement.");
+            }
         });
     }
 }
