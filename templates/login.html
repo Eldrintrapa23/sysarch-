@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sit-in History</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 1200px; margin: auto; padding: 20px; }
+        .flex-container {
+            display: flex;
+            gap: 20px;
+        }
+        .left-column, .right-column {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .left-column { flex: 2; } /* More space for sit-in history */
+        .right-column { flex: 1; } /* Less space for feedback */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th { background: #f4f4f4; }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .back-button { margin-top: 15px; background-color: red; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="flex-container">
+            
+            <!-- Left Column: Sit-in History -->
+            <div class="left-column">
+                <h2>My Previous Sit-in Sessions</h2>
+
+{% if history %}
+<table>
+    <thead>
+        <tr>
+            <th>Lab</th>
+            <th>Purpose</th>
+            <th>Login Time</th>
+            <th>Logout Time</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in history %}
+        <tr>
+            <td>{{ record[0] }}</td>
+            <td>{{ record[1] }}</td>
+            <td>{{ record[2] }}</td>
+            <td>{{ record[3] }}</td>
+            <td>{{ record[4] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No sit-in history found.</p>
+{% endif %}
+                
+            </div>
+
+            <!-- Right Column: Feedback -->
+            <div class="right-column">
+                <div class="header">Submit Feedback</div>
+                <form id="feedback-form">
+                    <textarea id="feedback-text" name="feedback" rows="4" cols="40" required></textarea><br>
+                    <button type="button" id="submit-feedback" class="w3-button w3-green">Submit Feedback</button> <!-- Set button type to "button" -->
+                </form>
+                
+                <!-- Success/Error Message -->
+                <p id="feedback-message"></p>
+
+                <div class="header"></div>
+                <ul id="feedback-list">
+                    {% for feedback in feedbacks %}
+                    <li>{{ feedback[0] }} (Lab: {{ feedback[1] }}) (Submitted on: {{ feedback[2] }})</li>
+                    {% endfor %}
+                </ul>
+
+                <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("submit-feedback").addEventListener("click", function(event) {
+            event.preventDefault();
+    
+            let feedbackText = document.getElementById("feedback-text").value;
+            let messageElement = document.getElementById("feedback-message");
+            let feedbackList = document.getElementById("feedback-list");
+    
+            // Check if feedback is empty
+            if (!feedbackText.trim()) {
+                messageElement.innerText = "Feedback cannot be empty!";
+                messageElement.style.color = "red";
+                return;
+            }
+    
+            // Send feedback via fetch API
+            fetch("{{ url_for('sit_history') }}", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ "feedback": feedbackText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                messageElement.innerText = data.message;
+                messageElement.style.color = (data.status === "success") ? "green" : "red";
+    
+                if (data.status === "success") {
+                    document.getElementById("feedback-text").value = "";
+                    
+                    // Add new feedback to the feedback list dynamically
+                    let newFeedback = document.createElement("li");
+                    let now = new Date().toLocaleString();
+                    newFeedback.innerText = `${data.feedback_text} (Lab: ${data.sit_lab}) (Submitted on: ${now})`;
+                    feedbackList.prepend(newFeedback);
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        });
+    </script>
+    
+
+</body>
+</html>

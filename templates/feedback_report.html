@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Feedback Reports</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: #41644A;
+            color: #fff;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar .logo {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .nav-links {
+            list-style: none;
+            display: flex;
+            padding: 0;
+            margin: 0;
+        }
+        .nav-links li {
+            margin-right: 20px;
+        }
+        .nav-links li a {
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .nav-links li a:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+
+        /* Container */
+        .container {
+            width: 90%;
+            margin: 20px auto;
+        }
+        h2 {
+            color: #333;
+            text-align: left;
+        }
+
+        /* Search Box */
+        .search-box {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: left;
+            gap: 10px;
+        }
+        input[type="text"], button {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+            padding: 10px 20px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #004c9d;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+            font-size: 14px;
+        }
+        th {
+            background-color: #41644A;
+            color: white;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: capitalize;
+            display: inline-block;
+        }
+        .badge.approved {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .badge.pending {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .badge.rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+        .approve-btn, .reject-btn {
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #fff;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .approve-btn {
+            background-color: #28a745;
+        }
+        .approve-btn:hover {
+            background-color: #218838;
+        }
+        .reject-btn {
+            background-color: #dc3545;
+        }
+        .reject-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ✅ Navbar -->
+<div class="navbar">
+    <div class="logo">Admin Dashboard</div>
+    <ul class="nav-links">
+        <li><a href="{{ url_for('admin_dashboard') }}">Home</a></li>
+        <li><a href="{{ url_for('search') }}">Search</a></li>
+        <li><a href="{{ url_for('students') }}">Students</a></li>
+        <li><a href="{{ url_for('current_sit_in') }}">Sit-in</a></li>
+        <li><a href="{{ url_for('sit_in_records') }}">View Sit-in Records</a></li>
+        <li><a href="{{ url_for('sit_in_report') }}">Sit-in Reports</a></li>
+        <li><a href="{{ url_for('feedback_report') }}">Feedback Reports</a></li>
+        <li><a href="{{ url_for('reservation') }}">Reservation</a></li>
+    </ul>
+    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+</div>
+
+<!-- Feedback Report Section -->
+<div class="container">
+    <h2>Feedback Reports</h2>
+
+    <!-- Search Box for Feedback -->
+    <div class="search-box">
+        <input type="text" id="feedback-search" placeholder="Search Feedback..." />
+        <button onclick="searchFeedback()">Search</button>
+    </div>
+
+    <!-- Feedback Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>Lastname</th>
+                <th>Firstname</th>
+                <th>Lab</th>
+                <th>Date</th>
+                <th>Message</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="feedback-table">
+            {% for feedback in feedbacks %}
+            <tr>
+                <td>{{ feedback.lastname }}</td>
+                <td>{{ feedback.firstname }}</td>
+                <td>{{ feedback.lab }}</td>
+                <td>{{ feedback.date }}</td>
+                <td>{{ feedback.message }}</td>
+                <td>
+                    <span class="badge {{ feedback.status }}">{{ feedback.status }}</span>
+                </td>
+                <td class="actions">
+                    <button class="approve-btn" onclick="approveFeedback('{{ feedback.lastname }}')">Approve</button>
+                    <button class="reject-btn" onclick="rejectFeedback('{{ feedback.lastname }}')">Reject</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Search feedback by content or student name
+    function searchFeedback() {
+        let searchTerm = document.getElementById("feedback-search").value.toLowerCase();
+        let rows = document.getElementById("feedback-table").getElementsByTagName("tr");
+
+        for (let i = 0; i < rows.length; i++) {
+            let row = rows[i];
+            let columns = row.getElementsByTagName("td");
+            let message = columns[4].innerText.toLowerCase();
+            let studentName = columns[0].innerText.toLowerCase() + " " + columns[1].innerText.toLowerCase();
+
+            if (message.includes(searchTerm) || studentName.includes(searchTerm)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        }
+    }
+
+    // Approve Feedback
+    function approveFeedback(studentName) {
+        alert("Approved feedback from " + studentName);
+    }
+
+    // Reject Feedback
+    function rejectFeedback(studentName) {
+        alert("Rejected feedback from " + studentName);
+    }
+</script>
+
+</body>
+</html>

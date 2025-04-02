@@ -198,9 +198,82 @@ def sit_rules():
 def lab_rules():
     return render_template('labrules.html')
 
-@app.route('/history')
+
+@app.route('/history', methods=['GET', 'POST'])
 def sit_history():
-    return render_template('history.html')
+    if 'id_number' not in session:
+        return redirect(url_for('login'))  # Ensure user is logged in
+
+    id_number = session['id_number']
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+
+    # Fetch student sit-in history
+    cursor.execute("""
+        SELECT lab, purpose, login_time, logout_time, date 
+        FROM sit_in_records 
+        WHERE id_number = ?
+        ORDER BY date DESC, login_time DESC
+    """, (id_number,))
+    history = cursor.fetchall()
+
+    # Fetch feedback for the student
+    cursor.execute("""
+        SELECT feedback_text, lab, submitted_on 
+        FROM feedback 
+        WHERE id_number = ?
+        ORDER BY submitted_on DESC
+    """, (id_number,))
+    feedbacks = cursor.fetchall()
+
+    # Handle feedback submission
+    if request.method == 'POST':
+        feedback_text = request.form.get('feedback')
+        if feedback_text:
+            # Get the latest sit-in lab (assuming most recent)
+            cursor.execute("""
+                SELECT lab FROM sit_in_records 
+                WHERE id_number = ? 
+                ORDER BY date DESC, login_time DESC LIMIT 1
+            """, (id_number,))
+            latest_sit_in = cursor.fetchone()
+            sit_lab = latest_sit_in[0] if latest_sit_in else "Unknown"
+
+            # Insert feedback
+            cursor.execute("""
+                INSERT INTO feedback (id_number, lab, feedback_text, submitted_on) 
+                VALUES (?, ?, ?, datetime('now'))
+            """, (id_number, sit_lab, feedback_text))
+            conn.commit()
+
+            conn.close()
+            return jsonify({
+                "status": "success", 
+                "message": "Feedback submitted!", 
+                "sit_lab": sit_lab,
+                "feedback_text": feedback_text
+            })
+
+    conn.close()
+    return render_template('history.html', history=history, feedbacks=feedbacks, id_number=id_number)
+
+@app.route('/admin/feedbacks')
+def view_feedbacks():
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    
+    # Fetch all feedbacks with student details
+    cursor.execute("""
+        SELECT f.id, f.id_number, r.last_name, r.first_name, f.feedback, f.submitted_at
+        FROM feedbacks f
+        JOIN records u ON f.id_number = r.id_number
+        ORDER BY f.submitted_at DESC
+    """)
+    feedbacks = cursor.fetchall()
+    
+    conn.close()
+    return render_template('admin_feedbacks.html', feedbacks=feedbacks)
+
 
 # Logout route
 @app.route('/logout')
@@ -521,16 +594,13 @@ def sit_in_reports():
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
 
-    # Fetch sit-in records (detailed)
-    cursor.execute("SELECT * FROM sit_in_reports ORDER BY logout_time DESC")
+    # Fetch sit-in records
+    cursor.execute("SELECT * FROM sit_in_records ORDER BY logout_time DESC")
     records = cursor.fetchall()
 
-    # Fetch report data (aggregated by lab)
-    cursor.execute("SELECT sit_lab, COUNT(*) FROM sit_in_reports GROUP BY sit_lab")
-    report_data = cursor.fetchall()
-
     conn.close()
-    return render_template('sit_in_reports.html', report_data=report_data, records=records)
+    return render_template('sit_in_reports.html', reports=records)
+
 
 @app.route('/logouts/<int:id_number>')
 def logouts(id_number):
