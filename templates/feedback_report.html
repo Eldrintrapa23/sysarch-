@@ -4,143 +4,306 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Feedback Reports</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f8f9fa;
+        * {
             margin: 0;
             padding: 0;
-            color: #333;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
         }
 
         /* Navbar */
         .navbar {
-            background-color: #41644A;
-            color: #fff;
-            padding: 15px 20px;
+            background: #41644A;
+            padding: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: 70px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
-        .navbar .logo {
-            font-size: 20px;
-            font-weight: bold;
-        }
-        .nav-links {
-            list-style: none;
-            display: flex;
-            padding: 0;
-            margin: 0;
-        }
-        .nav-links li {
-            margin-right: 20px;
-        }
-        .nav-links li a {
-            color: #fff;
-            text-decoration: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        .nav-links li a:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        .logout-btn {
-            background-color: #dc3545;
+
+        .logo {
+            font-size: 1.3em;
+            font-weight: 600;
             color: white;
-            padding: 8px 15px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
+            padding: 0 25px;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
         }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            height: 100%;
+            padding: 0;
+            flex-grow: 1;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .nav-links li {
+            height: 100%;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0 15px;
+            font-size: 0.9em;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            position: relative;
+            gap: 5px;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: #E9772B;
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .logout-container {
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: #E9772B;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .logout-btn:hover {
-            background-color: #c82333;
+            background: #d66a24;
+            transform: translateY(-2px);
+        }
+
+        .logout-btn i {
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1200px) {
+            .nav-links a {
+                padding: 0 10px;
+                font-size: 0.85em;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .navbar {
+                height: auto;
+                padding: 10px;
+                flex-direction: column;
+            }
+
+            .logo {
+                padding: 15px;
+                width: 100%;
+                justify-content: center;
+                background: none;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                padding: 10px 0;
+                gap: 8px;
+            }
+
+            .nav-links li {
+                height: 40px;
+            }
+
+            .nav-links a {
+                padding: 0 15px;
+                border-radius: 20px;
+            }
+
+            .nav-links a::after {
+                display: none;
+            }
+
+            .logout-container {
+                width: 100%;
+                justify-content: center;
+                padding: 10px 0;
+            }
         }
 
         /* Container */
         .container {
-            width: 90%;
-            margin: 20px auto;
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
         }
-        h2 {
-            color: #333;
-            text-align: left;
+
+        /* Page Title */
+        .page-title {
+            color: #41644A;
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .page-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: #E9772B;
+            border-radius: 3px;
         }
 
         /* Search Box */
         .search-box {
-            margin-bottom: 20px;
             display: flex;
-            justify-content: left;
-            gap: 10px;
-        }
-        input[type="text"], button {
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            border: none;
-            padding: 10px 20px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #004c9d;
+            gap: 15px;
+            margin-bottom: 30px;
+            max-width: 500px;
         }
 
-        /* Table Styling */
+        .search-box input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #41644A;
+            box-shadow: 0 0 0 3px rgba(65, 100, 74, 0.1);
+        }
+
+        .search-box button {
+            background: #41644A;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-box button:hover {
+            background: #2d4633;
+            transform: translateY(-2px);
+        }
+
+        /* Table Container */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            background-color: white;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
         }
+
         th, td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: center;
-            font-size: 14px;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
         }
+
         th {
-            background-color: #41644A;
+            background: #41644A;
             color: white;
-            font-weight: bold;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
+
         tr:hover {
-            background-color: #f1f1f1;
+            background: #f8f9fa;
         }
 
         /* Status Badges */
         .badge {
-            padding: 5px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
             text-transform: capitalize;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
+
         .badge.approved {
-            background-color: #d4edda;
+            background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
+
         .badge.pending {
-            background-color: #fff3cd;
+            background: #fff3cd;
             color: #856404;
             border: 1px solid #ffeeba;
         }
+
         .badge.rejected {
-            background-color: #f8d7da;
+            background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
@@ -148,124 +311,486 @@
         /* Action Buttons */
         .actions {
             display: flex;
-            justify-content: center;
-            gap: 5px;
+            gap: 8px;
         }
-        .approve-btn, .reject-btn {
-            padding: 6px 12px;
-            border-radius: 5px;
-            font-size: 12px;
-            color: #fff;
+
+        .approve-btn, .reject-btn, .delete-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: white;
             cursor: pointer;
             border: none;
-            transition: background-color 0.2s;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
+
         .approve-btn {
-            background-color: #28a745;
+            background: #28a745;
         }
+
         .approve-btn:hover {
-            background-color: #218838;
+            background: #218838;
+            transform: translateY(-2px);
         }
+
         .reject-btn {
-            background-color: #dc3545;
+            background: #dc3545;
         }
+
         .reject-btn:hover {
-            background-color: #c82333;
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .delete-btn {
+            background: #dc3545;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        /* Status Message */
+        #status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Export Buttons Container */
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: white;
+        }
+
+        .print-btn {
+            background: #41644A;
+        }
+
+        .print-btn:hover {
+            background: #2d4633;
+            transform: translateY(-2px);
+        }
+
+        .pdf-btn {
+            background: #dc3545;
+        }
+
+        .pdf-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .excel-btn {
+            background: #28a745;
+        }
+
+        .excel-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        /* Print Styles */
+        @media print {
+            .navbar, .search-box, .export-buttons, .delete-btn {
+                display: none;
+            }
+
+            .container {
+                margin: 0;
+                padding: 0;
+            }
+
+            .table-container {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+
+            th {
+                background: #41644A !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .page-title {
+                font-size: 1.5em;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .search-box button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .approve-btn, .reject-btn, .delete-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .export-buttons {
+                justify-content: center;
+            }
+
+            .export-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            #status-message {
+                left: 20px;
+                right: 20px;
+                top: 80px;
+            }
+        }
+
+        /* Remove filter section styles */
+        .filter-section,
+        .filter-group,
+        .filter-select,
+        .filter-btn {
+            display: none;
         }
     </style>
 </head>
 <body>
-
-<!-- ✅ Navbar -->
-<div class="navbar">
-    <div class="logo">Admin Dashboard</div>
-    <ul class="nav-links">
-        <li><a href="{{ url_for('admin_dashboard') }}">Home</a></li>
-        <li><a href="{{ url_for('search') }}">Search</a></li>
-        <li><a href="{{ url_for('students') }}">Students</a></li>
-        <li><a href="{{ url_for('current_sit_in') }}">Sit-in</a></li>
-        <li><a href="{{ url_for('sit_in_records') }}">View Sit-in Records</a></li>
-        <li><a href="{{ url_for('sit_in_report') }}">Sit-in Reports</a></li>
-        <li><a href="{{ url_for('feedback_report') }}">Feedback Reports</a></li>
-        <li><a href="{{ url_for('reservation') }}">Reservation</a></li>
-    </ul>
-    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-</div>
-
-<!-- Feedback Report Section -->
-<div class="container">
-    <h2>Feedback Reports</h2>
-
-    <!-- Search Box for Feedback -->
-    <div class="search-box">
-        <input type="text" id="feedback-search" placeholder="Search Feedback..." />
-        <button onclick="searchFeedback()">Search</button>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="logo">Admin Dashboard</div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="{{ url_for('search') }}"><i class="fas fa-search"></i> Search</a></li>
+            <li><a href="{{ url_for('students') }}"><i class="fas fa-users"></i> Students</a></li>
+            <li><a href="{{ url_for('current_sit_in') }}"><i class="fas fa-chair"></i> Sit-in</a></li>
+            <li><a href="{{ url_for('sit_in_records') }}"><i class="fas fa-history"></i> Records</a></li>
+            <li><a href="{{ url_for('sit_in_report') }}"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
+            <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
+            <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+        </ul>
+        <div class="logout-container">
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
+        </div>
     </div>
 
-    <!-- Feedback Table -->
-    <table>
-        <thead>
-            <tr>
-                <th>Lastname</th>
-                <th>Firstname</th>
-                <th>Lab</th>
-                <th>Date</th>
-                <th>Message</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="feedback-table">
-            {% for feedback in feedbacks %}
-            <tr>
-                <td>{{ feedback.lastname }}</td>
-                <td>{{ feedback.firstname }}</td>
-                <td>{{ feedback.lab }}</td>
-                <td>{{ feedback.date }}</td>
-                <td>{{ feedback.message }}</td>
-                <td>
-                    <span class="badge {{ feedback.status }}">{{ feedback.status }}</span>
-                </td>
-                <td class="actions">
-                    <button class="approve-btn" onclick="approveFeedback('{{ feedback.lastname }}')">Approve</button>
-                    <button class="reject-btn" onclick="rejectFeedback('{{ feedback.lastname }}')">Reject</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+    <!-- Status Message -->
+    <div id="status-message"></div>
 
-<script>
-    // Search feedback by content or student name
-    function searchFeedback() {
-        let searchTerm = document.getElementById("feedback-search").value.toLowerCase();
-        let rows = document.getElementById("feedback-table").getElementsByTagName("tr");
+    <div class="container">
+        <h1 class="page-title">Feedback Reports</h1>
 
-        for (let i = 0; i < rows.length; i++) {
-            let row = rows[i];
-            let columns = row.getElementsByTagName("td");
-            let message = columns[4].innerText.toLowerCase();
-            let studentName = columns[0].innerText.toLowerCase() + " " + columns[1].innerText.toLowerCase();
+        <!-- Search Box -->
+        <div class="search-box">
+            <input type="text" id="feedback-search" placeholder="Search Feedback..." />
+            <button onclick="searchFeedback()">
+                <i class="fas fa-search"></i>
+                Search
+            </button>
+        </div>
 
-            if (message.includes(searchTerm) || studentName.includes(searchTerm)) {
-                row.style.display = "";
-            } else {
-                row.style.display = "none";
+        <!-- Export Buttons -->
+        <div class="export-buttons">
+            <button class="export-btn print-btn" onclick="printReport()">
+                <i class="fas fa-print"></i>
+                Print Report
+            </button>
+            <button class="export-btn pdf-btn" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf"></i>
+                Export PDF
+            </button>
+            <button class="export-btn excel-btn" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i>
+                Export Excel
+            </button>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID Number</th>
+                        <th>Lab</th>
+                        <th>Date</th>
+                        <th>Message</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="feedback-table">
+                    {% for feedback in feedbacks %}
+                    <tr data-feedback-id="{{ feedback.id }}" data-status="{{ feedback.status }}">
+                        <td>{{ feedback.id_number }}</td>
+                        <td>{{ feedback.lab }}</td>
+                        <td>{{ feedback.date }}</td>
+                        <td>{{ feedback.message }}</td>
+                        <td>
+                            <button class="delete-btn" onclick="deleteFeedback('{{ feedback.id }}')">
+                                <i class="fas fa-trash"></i>
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Search feedback
+        function searchFeedback() {
+            let searchTerm = document.getElementById("feedback-search").value.toLowerCase();
+            let rows = document.getElementById("feedback-table").getElementsByTagName("tr");
+
+            for (let row of rows) {
+                let text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? "" : "none";
             }
         }
-    }
 
-    // Approve Feedback
-    function approveFeedback(studentName) {
-        alert("Approved feedback from " + studentName);
-    }
+        // Delete feedback
+        function deleteFeedback(feedbackId) {
+            if (confirm('Are you sure you want to delete this feedback?')) {
+                fetch("{{ url_for('delete_feedback') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: new URLSearchParams({
+                        feedback_id: feedbackId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the row from the table
+                        const row = document.querySelector(`tr[data-feedback-id="${feedbackId}"]`);
+                        row.remove();
+                        showMessage('Feedback deleted successfully', 'success');
+                    } else {
+                        showMessage(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage('An error occurred while deleting the feedback', 'error');
+                });
+            }
+        }
 
-    // Reject Feedback
-    function rejectFeedback(studentName) {
-        alert("Rejected feedback from " + studentName);
-    }
-</script>
+        // Show status message
+        function showMessage(message, type) {
+            const messageElement = document.getElementById('status-message');
+            messageElement.textContent = message;
+            messageElement.className = type === 'success' ? 'message-success' : 'message-error';
+            messageElement.style.display = 'block';
+            
+            setTimeout(() => {
+                messageElement.style.display = 'none';
+            }, 3000);
+        }
 
+        // Add event listener for search input
+        document.getElementById('feedback-search').addEventListener('keyup', searchFeedback);
+
+        // Print Report
+        function printReport() {
+            window.print();
+        }
+
+        // Export to PDF
+        function exportToPDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(16);
+                doc.text("Feedback Reports", 14, 15);
+                doc.setFontSize(12);
+                
+                // Add date
+                const today = new Date().toLocaleDateString();
+                doc.text(`Generated on: ${today}`, 14, 25);
+                
+                // Get table data
+                const table = document.querySelector('table');
+                const headers = [];
+                const data = [];
+                
+                // Get headers (excluding Action column)
+                table.querySelectorAll('th').forEach(th => {
+                    if (th.textContent.trim() !== 'Action') {
+                        headers.push(th.textContent.trim());
+                    }
+                });
+                
+                // Get data (excluding Action column)
+                table.querySelectorAll('tbody tr').forEach(tr => {
+                    const row = [];
+                    tr.querySelectorAll('td').forEach((td, index) => {
+                        if (index < td.parentElement.querySelectorAll('td').length - 1) {
+                            row.push(td.textContent.trim());
+                        }
+                    });
+                    data.push(row);
+                });
+                
+                // Add table
+                doc.autoTable({
+                    head: [headers],
+                    body: data,
+                    startY: 30,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: [65, 100, 74],
+                        textColor: 255,
+                        fontSize: 10
+                    },
+                    styles: { fontSize: 9 },
+                    columnStyles: {
+                        0: { cellWidth: 30 },
+                        1: { cellWidth: 30 },
+                        2: { cellWidth: 20 },
+                        3: { cellWidth: 20 },
+                        4: { cellWidth: 40 }
+                    }
+                });
+                
+                doc.save("Feedback_Reports.pdf");
+                showMessage('PDF exported successfully', 'success');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showMessage('Error generating PDF. Please try again.', 'error');
+            }
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            const table = document.querySelector('table');
+            const wb = XLSX.utils.book_new();
+            
+            // Create a clean table without the Action column
+            const cleanTable = document.createElement('table');
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+            
+            // Copy headers (excluding Action)
+            const headerRow = document.createElement('tr');
+            table.querySelectorAll('th').forEach(th => {
+                if (th.textContent.trim() !== 'Action') {
+                    const newTh = document.createElement('th');
+                    newTh.textContent = th.textContent;
+                    headerRow.appendChild(newTh);
+                }
+            });
+            thead.appendChild(headerRow);
+            cleanTable.appendChild(thead);
+            
+            // Copy data (excluding Action)
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const newRow = document.createElement('tr');
+                tr.querySelectorAll('td').forEach((td, index) => {
+                    if (index < tr.querySelectorAll('td').length - 1) {
+                        const newTd = document.createElement('td');
+                        newTd.textContent = td.textContent;
+                        newRow.appendChild(newTd);
+                    }
+                });
+                tbody.appendChild(newRow);
+            });
+            cleanTable.appendChild(tbody);
+            
+            // Convert to worksheet
+            const ws = XLSX.utils.table_to_sheet(cleanTable);
+            
+            // Add title and date
+            XLSX.utils.sheet_add_aoa(ws, [
+                ['Feedback Reports'],
+                [`Generated on: ${new Date().toLocaleDateString()}`],
+                ['']
+            ], { origin: 'A1' });
+            
+            XLSX.utils.book_append_sheet(wb, ws, "Feedback Reports");
+            XLSX.writeFile(wb, "Feedback_Reports.xlsx");
+            showMessage('Excel file exported successfully', 'success');
+        }
+    </script>
 </body>
 </html>

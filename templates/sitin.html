@@ -4,236 +4,379 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Current Sit-in</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f8f9fa;
+        * {
             margin: 0;
             padding: 0;
-            color: #333;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
         }
 
         /* Navbar */
         .navbar {
-            background-color: #41644A;
-            color: #fff;
-            padding: 15px 20px;
+            background: #41644A;
+            padding: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: 70px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
-        .navbar .logo {
-            font-size: 20px;
-            font-weight: bold;
-        }
-        .nav-links {
-            list-style: none;
-            display: flex;
-            padding: 0;
-            margin: 0;
-        }
-        .nav-links li {
-            margin-right: 20px;
-        }
-        .nav-links li a {
-            color: #fff;
-            text-decoration: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        .nav-links li a:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        .logout-btn {
-            background-color: #dc3545;
+
+        .logo {
+            font-size: 1.3em;
+            font-weight: 600;
             color: white;
-            padding: 8px 15px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
+            padding: 0 25px;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
         }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            height: 100%;
+            padding: 0;
+            flex-grow: 1;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .nav-links li {
+            height: 100%;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0 15px;
+            font-size: 0.9em;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            position: relative;
+            gap: 5px;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: #E9772B;
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .logout-container {
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: #E9772B;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .logout-btn:hover {
-            background-color: #c82333;
+            background: #d66a24;
+            transform: translateY(-2px);
+        }
+
+        .logout-btn i {
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1200px) {
+            .nav-links a {
+                padding: 0 10px;
+                font-size: 0.85em;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .navbar {
+                height: auto;
+                padding: 10px;
+                flex-direction: column;
+            }
+
+            .logo {
+                padding: 15px;
+                width: 100%;
+                justify-content: center;
+                background: none;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                padding: 10px 0;
+                gap: 8px;
+            }
+
+            .nav-links li {
+                height: 40px;
+            }
+
+            .nav-links a {
+                padding: 0 15px;
+                border-radius: 20px;
+            }
+
+            .nav-links a::after {
+                display: none;
+            }
+
+            .logout-container {
+                width: 100%;
+                justify-content: center;
+                padding: 10px 0;
+            }
         }
 
         /* Container */
         .container {
-            width: 90%;
-            margin: 20px auto;
-        }
-        h2 {
-            color: #333;
-            text-align: left;
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
         }
 
-        /* Search Box */
-        .search-box {
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: left;
-            gap: 10px;
-        }
-        input[type="text"], button {
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            border: none;
-            padding: 10px 20px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #004c9d;
+        /* Page Title */
+        .page-title {
+            color: #41644A;
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            padding-bottom: 15px;
         }
 
-        /* Table Styling */
+        .page-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: #E9772B;
+            border-radius: 3px;
+        }
+
+        /* Table Container */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            background-color: white;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
         }
+
         th, td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: center;
-            font-size: 14px;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
         }
+
         th {
-            background-color: #41644A;
+            background: #41644A;
             color: white;
-            font-weight: bold;
+            font-weight: 500;
         }
+
         tr:hover {
-            background-color: #f1f1f1;
+            background: #f8f9fa;
+        }
+
+        /* Center align specific columns */
+        th:nth-child(3), /* Purpose column */
+        td:nth-child(3),
+        th:nth-child(4), /* Lab column */
+        td:nth-child(4),
+        th:nth-child(5), /* Session column */
+        td:nth-child(5),
+        th:nth-child(6), /* Login Time column */
+        td:nth-child(6),
+        th:nth-child(7), /* Date column */
+        td:nth-child(7),
+        th:nth-child(8), /* Status column */
+        td:nth-child(8),
+        th:nth-child(9), /* Actions column */
+        td:nth-child(9) {
+            text-align: center;
         }
 
         /* Status Badges */
         .badge {
-            padding: 5px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
             text-transform: capitalize;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
+
         .badge.approved {
-            background-color: #d4edda;
+            background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
+
         .badge.pending {
-            background-color: #fff3cd;
+            background: #fff3cd;
             color: #856404;
             border: 1px solid #ffeeba;
         }
+
         .badge.rejected {
-            background-color: #f8d7da;
+            background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
 
-        /* Action Buttons */
-        .actions {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
+        /* Session display */
+        .session-count {
+            font-weight: 500;
+            color: #41644A;
         }
-        .approve-btn, .reject-btn {
-            padding: 6px 12px;
-            border-radius: 5px;
-            font-size: 12px;
-            color: #fff;
-            cursor: pointer;
+
+        /* End Session Button */
+        .end-session-btn {
+            background: #E9772B;
+            color: white;
+            padding: 8px 15px;
             border: none;
-            transition: background-color 0.2s;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9em;
         }
-        .approve-btn {
-            background-color: #28a745;
-        }
-        .approve-btn:hover {
-            background-color: #218838;
-        }
-        .reject-btn {
-            background-color: #dc3545;
-        }
-        .reject-btn:hover {
-            background-color: #c82333;
+
+        .end-session-btn:hover {
+            background: #d66a24;
+            transform: translateY(-2px);
         }
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="logo">Admin Dashboard</div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="{{ url_for('search') }}"><i class="fas fa-search"></i> Search</a></li>
+            <li><a href="{{ url_for('students') }}"><i class="fas fa-users"></i> Students</a></li>
+            <li><a href="{{ url_for('current_sit_in') }}"><i class="fas fa-chair"></i> Sit-in</a></li>
+            <li><a href="{{ url_for('sit_in_records') }}"><i class="fas fa-history"></i> Records</a></li>
+            <li><a href="{{ url_for('sit_in_report') }}"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
+            <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
+            <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+        </ul>
+        <div class="logout-container">
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
+        </div>
+    </div>
 
-<!-- ✅ Navbar -->
-<div class="navbar">
-    <div class="logo">Admin Dashboard</div>
-    <ul class="nav-links">
-        <li><a href="{{ url_for('admin_dashboard') }}">Home</a></li>
-        <li><a href="{{ url_for('search') }}">Search</a></li>
-        <li><a href="{{ url_for('students') }}">Students</a></li>
-        <li><a href="{{ url_for('current_sit_in') }}">Sit-in</a></li>
-        <li><a href="{{ url_for('sit_in_records') }}">View Sit-in Records</a></li>
-        <li><a href="{{ url_for('sit_in_report') }}">Sit-in Reports</a></li>
-        <li><a href="{{ url_for('feedback_report') }}">Feedback Reports</a></li>
-        <li><a href="{{ url_for('reservation') }}">Reservation</a></li>
-    </ul>
-    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-</div>
+    <div class="container">
+        <h1 class="page-title">Current Sit-in</h1>
 
-<h2 style="text-align: center; margin-top: 20px;">Current Sit-in</h2>
-
-<table>
-    <thead>
-        <tr>
-            <th>Sit ID Number</th>
-            <th>ID Number</th>
-            <th>Last Name</th>
-            <th>First Name</th>
-            <th>Purpose</th>
-            <th>Sit Lab</th>
-            <th>Session</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for record in sit_in_data %}
-        <tr>
-            <td>{{ record[0] }}</td> <!-- Sit ID Number -->
-            <td>{{ record[1] }}</td> <!-- ID Number -->
-            <td>{{ record[2] }}</td> <!-- First Name -->
-            <td>{{ record[3] }}</td> <!-- Last Name -->
-            <td>{{ record[4] }}</td> <!-- Purpose -->
-            <td>{{ record[5] }}</td> <!-- Sit Lab -->
-            <td>{{ record[6] }}</td> <!-- Session -->
-            <td>
-                <span class="badge">{{ record[7] }}</span> <!-- Status -->
-            </td>
-            <td>
-                <form action="{{ url_for('logout_sit_in', id=record[0]) }}" method="post" style="display: inline;">
-                    <button type="submit" onclick="return confirm('Are you sure you want to log out this student?')"
-                        style="background-color: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 14px; cursor: pointer;">
-                        End Session
-                    </button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Sit ID</th>
+                        <th>ID Number</th>
+                        <th>Purpose</th>
+                        <th>Lab</th>
+                        <th>Remaining Sessions</th>
+                        <th>Login Time</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in sit_in_data %}
+                    <tr>
+                        <td>{{ record[0] }}</td>
+                        <td>{{ record[1] }}</td>
+                        <td>{{ record[2] }}</td>
+                        <td>{{ record[3] }}</td>
+                        <td class="session-count">{{ record[4] }}</td>
+                        <td>{{ record[5] }}</td>
+                        <td>{{ record[6] }}</td>
+                        <td>
+                            <span class="badge">
+                                <i class="fas fa-circle"></i>
+                                {{ record[7] }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="button-container">
+                                <form action="{{ url_for('logout_sit_in', id=record[0]) }}" method="post">
+                                    <button type="submit" onclick="return confirm('Are you sure you want to log out this student?')" class="end-session-btn">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        End Session
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </body>
 </html>

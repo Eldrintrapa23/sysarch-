@@ -4,445 +4,704 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f8f9fa;
+        * {
             margin: 0;
             padding: 0;
-            color: #333;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
         }
 
         /* Navbar */
         .navbar {
-            background-color: #41644A  ;
-            color: #fff;
-            padding: 15px 20px;
+            background: #41644A;
+            padding: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: 70px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
-        .navbar .logo {
-            font-size: 20px;
-            font-weight: bold;
-        }
-        .nav-links {
-            list-style: none;
-            display: flex;
-            padding: 0;
-            margin: 0;
-        }
-        .nav-links li {
-            margin-right: 20px;
-        }
-        .nav-links li a {
-            color: #fff;
-            text-decoration: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        .nav-links li a:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        .logout-btn {
-            background-color: #dc3545;
+
+        .logo {
+            font-size: 1.3em;
+            font-weight: 600;
             color: white;
-            padding: 8px 15px;
-            border-radius: 5px;
+            padding: 0 25px;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            height: 100%;
+            padding: 0;
+            flex-grow: 1;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .nav-links li {
+            height: 100%;
+        }
+
+        .nav-links a {
+            color: white;
             text-decoration: none;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-            outline: none; /* Remove the outline */
-}
+            padding: 0 15px;
+            font-size: 0.9em;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            position: relative;
+            gap: 5px;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: #E9772B;
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .logout-container {
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: #E9772B;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .logout-btn:hover {
-            background-color: #c82333;
+            background: #d66a24;
+            transform: translateY(-2px);
+        }
+
+        .logout-btn i {
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1200px) {
+            .nav-links a {
+                padding: 0 10px;
+                font-size: 0.85em;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .navbar {
+                height: auto;
+                padding: 10px;
+                flex-direction: column;
+            }
+
+            .logo {
+                padding: 15px;
+                width: 100%;
+                justify-content: center;
+                background: none;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                padding: 10px 0;
+                gap: 8px;
+            }
+
+            .nav-links li {
+                height: 40px;
+            }
+
+            .nav-links a {
+                padding: 0 15px;
+                border-radius: 20px;
+            }
+
+            .nav-links a::after {
+                display: none;
+            }
+
+            .logout-container {
+                width: 100%;
+                justify-content: center;
+                padding: 10px 0;
+            }
         }
 
         /* Dashboard Container */
         .dashboard {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 20px auto;
-        }
-
-        /* Shared Styles for Sections */
-        .section {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-            transition: box-shadow 0.3s ease;
-        }
-        .section:hover {
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
-        }
-        .section-header {
-            font-size: 18px;
-            font-weight: bold;
-            color:  #fd944e;
-            margin-bottom: 15px;
-            padding-bottom: 5px;
-            border-bottom: 2px solid #fd944e;
+            gap: 30px;
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
         }
 
         /* Statistics Section */
-        .stats p {
-            font-size: 16px;
-            color: #555;
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #41644A;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #E9772B;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            color: #41644A;
+            font-size: 1.1em;
             margin-bottom: 10px;
         }
-        .chart-container {
-            margin-top: 20px;
+
+        .stat-card p {
+            color: #E9772B;
+            font-size: 1.8em;
+            font-weight: 600;
+        }
+
+        .reset-btn {
+            background: #E9772B;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
             display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
             justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn:hover {
+            background: #d66a24;
+            transform: translateY(-2px);
         }
 
         /* Announcements Section */
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
+        .announcement-form {
+            margin-bottom: 30px;
         }
-        textarea {
+
+        .announcement-form input[type="text"] {
             width: 100%;
             padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 14px;
-            resize: none;
-            box-sizing: border-box;
-            transition: border 0.2s ease;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
         }
-        textarea:focus {
-            border-color: #007bff;
+
+        .announcement-form input[type="text"]:focus {
             outline: none;
+            border-color: #41644A;
         }
+
+        .announcement-form textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 1em;
+            min-height: 120px;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .announcement-form textarea:focus {
+            outline: none;
+            border-color: #41644A;
+        }
+
         .btn-submit {
-            background-color: #e9772bf8;
-            color: #fff;
-            padding: 10px;
+            background: #41644A;
+            color: white;
+            padding: 12px 25px;
             border: none;
-            border-radius: 6px;
-            font-size: 14px;
+            border-radius: 8px;
+            font-size: 1em;
             cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .btn-submit:hover {
-            background-color:  #fd944e;
-        }
-        
-
-        /* Posted Announcements */
-        .posted-announcements {
-    max-height: 300px; /* Adjust height as needed */
-    overflow-y: auto;
-    padding-right: 10px; /* Optional: Adds space for scrollbar */
-}
-
-        .announcement-item {
-            background-color: #f9f9f9;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            transition: background-color 0.3s;
-        }
-        .announcement-item strong {
-            color:  #fd944e;
-            display: block;
-            margin-bottom: 4px;
-        }
-        .announcement-item p {
-            font-size: 14px;
-            color: #555;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
-        }
-
-    .btn-delete {
-        background-color: #ff4d4d;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        margin-top: 5px;
-    }
-    .btn-delete:hover {
-        background-color: #cc0000;
-    }
-
-    .dashboard {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-        .flash-container {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 1000;
-        }
-        .flash-box {
-            width: 250px;
-            height: 100px;
-            text-align: center;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            font-weight: bold;
-            border: 2px solid #000;
-            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
-            background-color: rgb(80, 252, 80);
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .btn-submit:hover {
+            background: #2d4432;
+            transform: translateY(-2px);
+        }
+
+        .posted-announcements {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .posted-announcements::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .posted-announcements::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .posted-announcements::-webkit-scrollbar-thumb {
+            background: #41644A;
+            border-radius: 3px;
+        }
+
+        .announcement-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            transition: transform 0.3s ease;
+        }
+
+        .announcement-item:hover {
+            transform: translateX(5px);
+        }
+
+        .announcement-item strong {
+            color: #41644A;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .announcement-item p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .announcement-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-edit, .btn-delete {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .btn-edit {
-    background-color: #3498db; /* Blue color */
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background 0.3s;
-}
+            background: #3498db;
+            color: white;
+        }
 
-.btn-edit:hover {
-    background-color: #2980b9; /* Darker blue on hover */
-}
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
 
-</style>
+        .btn-edit:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
 
-</style>
+        .btn-delete:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        /* Flash Messages */
+        .flash-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .flash-box {
+            padding: 15px 25px;
+            border-radius: 8px;
+            background: #41644A;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-
-<!-- Navbar -->
-<div class="navbar">
-    <div class="logo">Admin Dashboard</div>
-    <ul class="nav-links">
-        <li><a href="{{ url_for('admin_dashboard') }}">Home</a></li>
-        <li><a href="{{ url_for('search') }}">Search</a></li>
-        <li><a href="{{ url_for('students') }}">Students</a></li>
-        <li><a href="{{ url_for('current_sit_in') }}">Sit-in</a></li>
-        <li><a href="{{ url_for('sit_in_records') }}">View Sit-in Records</a></li>
-        <li><a href="{{ url_for('sit_in_report') }}">Sit-in Reports</a></li>
-        <li><a href="{{ url_for('feedback_report') }}">Feedback Reports</a></li>
-        <li><a href="{{ url_for('reservation') }}">Reservation</a></li>
-    </ul>
-    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-</div>
-
-<!-- Dashboard -->
-<div class="dashboard">
-
-    <!-- Statistics Section -->
-    <div class="section stats">
-        <div class="section-header">📊 Statistics</div>
-        <p><strong>Students Registered:</strong> {{ total_students }}</p>
-        <p><strong>Currently Sit-in:</strong> {{ current_sit_in }}</p>
-        <p><strong>Total Sit-in:</strong> {{ total_sit_in }}</p>
-        <div class="chart-container">
-            <canvas id="sitInChart"></canvas>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="logo">Admin Dashboard</div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="{{ url_for('search') }}"><i class="fas fa-search"></i> Search</a></li>
+            <li><a href="{{ url_for('students') }}"><i class="fas fa-users"></i> Students</a></li>
+            <li><a href="{{ url_for('current_sit_in') }}"><i class="fas fa-chair"></i> Sit-in</a></li>
+            <li><a href="{{ url_for('sit_in_records') }}"><i class="fas fa-history"></i> Records</a></li>
+            <li><a href="{{ url_for('sit_in_report') }}"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
+            <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
+            <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+        </ul>
+        <div class="logout-container">
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
         </div>
     </div>
 
-     <!-- Announcements Section -->
-<div class="section announcements">
-    <div class="section-header">📢 Announcement</div>
-    <form id="announcementForm" action="{{ url_for('post_announcement') }}" method="POST">
-        <input type="text" name="title" placeholder="Title" required>
-        <textarea name="announcement" placeholder="New Announcement..." required></textarea>
-        <button type="submit" class="btn-submit">Submit</button>
-    </form>
-
-    <div class="posted-announcements">
-        <h3>Posted Announcements</h3>
-        {% for announcement in announcements %}
-        <div class="announcement-item" id="announcement-{{ announcement.id }}">
-            <strong>{{ announcement.admin }} | {{ announcement.date_posted }}</strong>
-            <p id="message-{{ announcement.id }}">{{ announcement.message }}</p>
-            
-            <!-- Edit and Delete Buttons -->
-            <button type="button" class="btn-edit" onclick="editAnnouncement('{{ announcement.id }}')">
-                Edit
-            </button>            
-            <button type="button" class="btn-delete" onclick="announcementDelete('{{ announcement.id }}')">
-                Delete
-            </button>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-  
-    <!-- Flash Message Container (Optional) -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-container">
-          {% for category, message in messages %}
-            <div class="flash-box w3-panel w3-{{ 'green' if category == 'success' else 'red' }} w3-padding w3-round">
-              {{ message }}
+    <!-- Dashboard -->
+    <div class="dashboard">
+        <!-- Statistics Section -->
+        <div class="section stats">
+            <div class="section-header">
+                <i class="fas fa-chart-bar"></i>
+                Statistics
             </div>
-          {% endfor %}
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Students Registered</h3>
+                    <p>{{ total_students }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Currently Sit-in</h3>
+                    <p>{{ current_sit_in }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Sit-in</h3>
+                    <p>{{ total_sit_in }}</p>
+                </div>
+                <div class="stat-card">
+                    <button id="resetSessionsBtn" class="reset-btn">
+                        <i class="fas fa-redo"></i>
+                        Reset All Sessions
+                    </button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="sitInChart"></canvas>
+            </div>
         </div>
-      {% endif %}
+
+        <!-- Announcements Section -->
+        <div class="section announcements">
+            <div class="section-header">
+                <i class="fas fa-bullhorn"></i>
+                Announcements
+            </div>
+            <form id="announcementForm" action="{{ url_for('post_announcement') }}" method="POST" class="announcement-form">
+                <input type="text" name="title" placeholder="Announcement Title" required>
+                <textarea name="announcement" placeholder="Enter your announcement here..." required></textarea>
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-paper-plane"></i>
+                    Post Announcement
+                </button>
+            </form>
+
+            <div class="posted-announcements">
+                {% for announcement in announcements %}
+                <div class="announcement-item" id="announcement-{{ announcement.id }}">
+                    <strong>{{ announcement.admin }} | {{ announcement.date_posted }}</strong>
+                    <p id="message-{{ announcement.id }}">{{ announcement.message }}</p>
+                    <div class="announcement-actions">
+                        <button type="button" class="btn-edit" onclick="editAnnouncement('{{ announcement.id }}')">
+                            <i class="fas fa-edit"></i>
+                            Edit
+                        </button>
+                        <button type="button" class="btn-delete" onclick="announcementDelete('{{ announcement.id }}')">
+                            <i class="fas fa-trash"></i>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-container">
+                {% for category, message in messages %}
+                    <div class="flash-box">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
     {% endwith %}
-  
-    <!-- JavaScript for Announcement Form Submission -->
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-      document.getElementById('announcementForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const title = this.title.value.trim();
-    const announcement = this.announcement.value.trim();
-  
-    if (!title || !announcement) {
-        alert("Title and announcement cannot be empty.");
-        return;
-    }
-
-    const formData = new FormData(this);
-    fetch(this.action, { method: 'POST', body: formData })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === "success") {
-                alert("Announcement posted successfully!");
-                window.location.reload();
-            } else {
-                alert("Error: " + data.message);
-            }
-        })
-        .catch(error => {
-            console.error("Error posting announcement:", error);
-            alert("An error occurred while posting the announcement.");
-        });
-});
-
-    </script>
-  
-    <!-- JavaScript for Handling Announcement Deletion with Message -->
-    <script>
-     function announcementDelete(id) {
-    if (confirm("Are you sure you want to delete this announcement?")) {
-        fetch(`/deleteannouncement/${id}`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === "success") {
-                alert(data.message);
-                document.getElementById(`announcement-${id}`).remove();  // Remove the announcement without reloading
-            } else {
-                alert("Error: " + data.message);
-            }
-        })
-        .catch(error => {
-            console.error("Error deleting announcement:", error);
-            alert("An error occurred while deleting the announcement.");
-        });
-    }
-}
-
-function editAnnouncement(id) {
-    var messageElement = document.getElementById("message-" + id);
-    var currentText = messageElement.innerText;
-
-    // Prompt user to enter new text
-    var newText = prompt("Edit your announcement:", currentText);
-    if (newText !== null && newText.trim() !== "") {
-        // Send update request to the server
-        fetch("{{ url_for('edit_announcement') }}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: id, message: newText })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                messageElement.innerText = newText;
-            } else {
-                alert("Error updating announcement.");
-            }
-        });
-    }
-}
-
-    </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-const ctx = document.getElementById('sitInChart').getContext('2d');
-const sitInChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: ['C#', 'C', 'Java', 'ASP.Net', 'Php'],
-        datasets: [{
-            label: 'Sit-in Data',
-            data: [20, 15, 25, 10, 30],
-            borderColor: '#007bff',  // Line color
-            backgroundColor: 'rgba(0, 123, 255, 0.2)', // Light blue background (optional)
-            fill: false,  // No area fill
-            tension: 0.3  // Smooth line effect
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top'
-            }
-        },
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Programming Languages'
-                }
+        // Chart configuration
+        const ctx = document.getElementById('sitInChart').getContext('2d');
+        const sitInChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['C#', 'C', 'Java', 'ASP.Net', 'Php'],
+                datasets: [{
+                    label: 'Sit-in Data',
+                    data: [20, 15, 25, 10, 30],
+                    borderColor: '#41644A',
+                    backgroundColor: 'rgba(65, 100, 74, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
             },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Sit-in Count'
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
                 },
-                beginAtZero: true
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Programming Languages',
+                            color: '#41644A',
+                            font: {
+                                weight: 'bold'
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Sit-in Count',
+                            color: '#41644A',
+                            font: {
+                                weight: 'bold'
+                            }
+                        },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Announcement form submission
+        document.getElementById('announcementForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = this.title.value.trim();
+            const announcement = this.announcement.value.trim();
+
+            if (!title || !announcement) {
+                alert("Title and announcement cannot be empty.");
+                return;
+            }
+
+            const formData = new FormData(this);
+            fetch(this.action, { method: 'POST', body: formData })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        alert("Announcement posted successfully!");
+                        window.location.reload();
+                    } else {
+                        alert("Error: " + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error posting announcement:", error);
+                    alert("An error occurred while posting the announcement.");
+                });
+        });
+
+        // Announcement deletion
+        function announcementDelete(id) {
+            if (confirm("Are you sure you want to delete this announcement?")) {
+                fetch(`/deleteannouncement/${id}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === "success") {
+                            alert(data.message);
+                            document.getElementById(`announcement-${id}`).remove();
+                        } else {
+                            alert("Error: " + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error deleting announcement:", error);
+                        alert("An error occurred while deleting the announcement.");
+                    });
             }
         }
-    }
-});
-</script>
 
-<!-- Flash Message Container (Optional) -->
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="flash-container">
-      {% for category, message in messages %}
-        <div class="flash-box w3-panel w3-{{ 'green' if category == 'success' else 'red' }} w3-padding w3-round">
-          {{ message }}
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
+        // Announcement editing
+        function editAnnouncement(id) {
+            var messageElement = document.getElementById("message-" + id);
+            var currentText = messageElement.innerText;
 
-<script>
-  // Wait 2 seconds (2000 milliseconds) then hide flash messages
-  setTimeout(() => {
-    document.querySelectorAll('.flash-box').forEach(msg => {
-      msg.style.display = 'none';
-    });
-  }, 2000);
-</script>
+            var newText = prompt("Edit your announcement:", currentText);
+            if (newText !== null && newText.trim() !== "") {
+                fetch("{{ url_for('edit_announcement') }}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: id, message: newText })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        messageElement.innerText = newText;
+                    } else {
+                        alert("Error updating announcement.");
+                    }
+                });
+            }
+        }
 
+        // Flash message timeout
+        setTimeout(() => {
+            document.querySelectorAll('.flash-box').forEach(msg => {
+                msg.style.display = 'none';
+            });
+        }, 3000);
+
+        // Reset Sessions functionality
+        document.getElementById('resetSessionsBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to reset all student sessions? This action cannot be undone.')) {
+                fetch('/reset_all_sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('All sessions have been reset successfully!');
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while resetting sessions.');
+                });
+            }
+        });
+    </script>
 </body>
 </html>

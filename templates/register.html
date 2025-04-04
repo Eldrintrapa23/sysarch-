@@ -4,86 +4,164 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
             font-family: 'Poppins', sans-serif;
-            background: url("{{ url_for('static', filename='images/bg-bg.png') }}") no-repeat center center fixed;
+        }
+
+        body {
+            background: url("{{ url_for('static', filename='images/bg-bgs.jpg') }}") no-repeat center center fixed;
             background-size: cover;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            padding: 20px;
         }
+
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
             padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-            width: 400px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-        .flash-messages {
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
             width: 100%;
+            max-width: 500px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
             text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #41644A;
+            font-size: 2.2em;
+            font-weight: 600;
             margin-bottom: 10px;
         }
-        .flash-messages p {
-            background-color: #28a745;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
+
+        .flash-messages {
+            margin-bottom: 20px;
         }
+
+        .flash-messages p {
+            background-color: #41644A;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.9em;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
         label {
             display: block;
-            text-align: left;
-            font-weight: bold;
-            margin-top: 10px;
-            width: 100%;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.95em;
         }
+
         input, select {
             width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 16px;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 12px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            background: white;
         }
+
+        input:focus, select:focus {
+            border-color: #41644A;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(65, 100, 74, 0.1);
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            padding-right: 40px;
+        }
+
         input[type="submit"] {
-            background: #28a745;
+            background: #41644A;
             color: white;
-            font-weight: bold;
+            font-weight: 600;
             border: none;
             cursor: pointer;
-            transition: 0.3s;
-            margin-top: 15px;
+            padding: 14px;
+            font-size: 1em;
+            margin-top: 10px;
+            transition: all 0.3s ease;
         }
+
         input[type="submit"]:hover {
-            background: #218838;
+            background: #2d4432;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(65, 100, 74, 0.3);
         }
+
         .login-link {
-            margin-top: 15px;
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e1e1;
         }
+
+        .login-link p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
         .login-link a {
-            color: #007bff;
+            color: #41644A;
             text-decoration: none;
-            font-weight: bold;
+            font-weight: 600;
+            transition: color 0.3s ease;
         }
+
         .login-link a:hover {
-            text-decoration: underline;
+            color: #2d4432;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            input, select {
+                padding: 10px 12px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Register</h1>
+        <div class="header">
+            <h1>Register</h1>
+        </div>
 
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -97,46 +175,59 @@
         {% endwith %}
 
         <form action="{{ url_for('register') }}" method="POST">
-            <label for="idno">ID Number:</label>
-            <input type="text" id="idno" name="idno" required>
+            <div class="form-group">
+                <label for="idno">ID Number</label>
+                <input type="text" id="idno" name="idno" required>
+            </div>
 
-            <label for="lastname">Last Name:</label>
-            <input type="text" id="lastname" name="lastname" required>
+            <div class="form-group">
+                <label for="lastname">Last Name</label>
+                <input type="text" id="lastname" name="lastname" required>
+            </div>
 
-            <label for="firstname">First Name:</label>
-            <input type="text" id="firstname" name="firstname" required>
+            <div class="form-group">
+                <label for="firstname">First Name</label>
+                <input type="text" id="firstname" name="firstname" required>
+            </div>
 
-            <label for="middlename">Middle Name:</label>
-            <input type="text" id="middlename" name="middlename">
+            <div class="form-group">
+                <label for="middlename">Middle Name</label>
+                <input type="text" id="middlename" name="middlename">
+            </div>
 
-            <label for="course">Course:</label>
-            <select id="course" name="course" required>
-                <option value="">Select Course</option>
-                <option value="BSIT">BS Information Technology</option>
-                <option value="BSCS">BS Computer Science</option>
-                <option value="BSIS">BS Information Systems</option>
-                <option value="BSECE">BS Electronics Engineering</option>
-                <option value="BSME">BS Mechanical Engineering</option>
-                <option value="BEED">Bachelor of Elementary Education</option>
-                <option value="BSBA">Business Administration</option>
-                <option value="BSA">BS Accounting</option>
-                <option value="BSN">BS Nursing</option>
-                <option value="BSCE">BS Civil Engineering</option>
-            </select>
+            <div class="form-group">
+                <label for="course">Course</label>
+                <select id="course" name="course" required>
+                    <option value="">Select Course</option>
+                    <option value="BSIT">BS Information Technology</option>
+                    <option value="BSCS">BS Computer Science</option>
+                    <option value="BSIS">BS Information Systems</option>
+                    <option value="BSECE">BS Electronics Engineering</option>
+                    <option value="BSME">BS Mechanical Engineering</option>
+                    <option value="BEED">Bachelor of Elementary Education</option>
+                    <option value="BSBA">Business Administration</option>
+                    <option value="BSA">BS Accounting</option>
+                    <option value="BSN">BS Nursing</option>
+                    <option value="BSCE">BS Civil Engineering</option>
+                </select>
+            </div>
 
-            <label for="year_level">Year Level:</label>
-            <input type="text" id="year_level" name="year_level" required>
+            <div class="form-group">
+                <label for="year_level">Year Level</label>
+                <input type="text" id="year_level" name="year_level" required>
+            </div>
 
-            <label for="email_address">Email Address:</label>
-            <input type="email" id="email_address" name="email_address" required>
+            <div class="form-group">
+                <label for="email_address">Email Address</label>
+                <input type="email" id="email_address" name="email_address" required>
+            </div>
 
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
 
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-
-            <input type="submit" value="Register">
+            <input type="submit" value="Create Account">
         </form>
 
         <div class="login-link">

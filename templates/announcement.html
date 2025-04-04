@@ -1,85 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Announcements</title>
-  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
-      padding: 20px;
-    }
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      margin-bottom: 20px;
-    }
-    .announcement-item {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
-      margin-bottom: 10px;
-    }
-    .announcement-item strong {
-      display: block;
-      color: #333;
-      font-size: 16px;
-      margin-bottom: 5px;
-    }
-    .announcement-item small {
-      display: block;
-      color: #777;
-      font-size: 12px;
-      margin-bottom: 8px;
-    }
-    .announcement-item p {
-      margin: 0;
-      color: #555;
-    }
-    .back-button {
-      margin-top: 15px;
-    }
-    .content {
-      padding: 20px;
-    }
-    .header {
-      font-size: 32px;
-      font-weight: bold;
-      border-bottom: 1px solid #d1c23b;
-      padding-bottom: 10px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcements</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .content {
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 30px;
+        }
+
+        .header {
+            color: #41644A;
+            font-size: 2.5em;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #E9772B;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(-20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .announcement-item {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .announcement-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .announcement-item strong {
+            display: block;
+            color: #41644A;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .announcement-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .announcement-meta .admin {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .announcement-meta .time {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .announcement-item p {
+            color: #333;
+            line-height: 1.6;
+            font-size: 1.1em;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .no-announcements {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 1.2em;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #E9772B;
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            background: #d66a24;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233, 119, 43, 0.3);
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .announcement-item {
+                padding: 20px;
+            }
+
+            .announcement-item strong {
+                font-size: 1.2em;
+            }
+
+            .announcement-item p {
+                font-size: 1em;
+            }
+
+            .announcement-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="content">
+        <div class="header">Announcements</div>
+    </div>
 
-<div class="content">
-  <div class="header">Announcements</div>
-</div>
-
-<div class="w3-container container">
-  {% if announcements %}
-    {% for announcement in announcements %}
-      <div class="card announcement-item">
-        <strong>{{ announcement[0] }}</strong>
-        <!-- Assuming announcement[2] contains the date and time -->
-        <small>{{ announcement[2] }}</small>
-        <p>{{ announcement[1] }}</p>
-      </div>
-    {% endfor %}
-  {% else %}
-    <p>No announcements yet.</p>
-  {% endif %}
-  
-  <a href="{{ url_for('student_dashboard') }}" class="w3-button w3-red back-button">Back</a>
-</div>
-
+    <div class="container">
+        {% if announcements %}
+            {% for announcement in announcements %}
+                <div class="announcement-item">
+                    <strong>{{ announcement[0] }}</strong>
+                    <div class="announcement-meta">
+                        <div class="admin">
+                            <i class="fas fa-user"></i>
+                            {{ announcement[1] }}
+                        </div>
+                        <div class="time">
+                            <i class="fas fa-clock"></i>
+                            {{ announcement[3]|datetime }}
+                        </div>
+                    </div>
+                    <p>{{ announcement[2] }}</p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-announcements">
+                No announcements yet.
+            </div>
+        {% endif %}
+        
+        <a href="{{ url_for('student_dashboard') }}" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
 </body>
 </html>

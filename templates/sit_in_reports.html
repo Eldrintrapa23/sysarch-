@@ -6,210 +6,656 @@
     <title>Sit-in Reports</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f8f9fa;
+        * {
             margin: 0;
             padding: 0;
-            color: #333;
-            text-align: center;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
         }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
         .navbar {
-            background-color: #41644A;
-            color: #fff;
-            padding: 15px 20px;
+            background: #41644A;
+            padding: 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: 70px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
-        .navbar .logo {
-            font-size: 20px;
-            font-weight: bold;
-        }
-        .nav-links {
-            list-style: none;
+
+        .logo {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: white;
+            padding: 0 25px;
             display: flex;
-            padding: 0;
+            align-items: center;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            list-style: none;
             margin: 0;
+            height: 100%;
+            padding: 0;
+            flex-grow: 1;
+            justify-content: center;
+            gap: 5px;
         }
+
         .nav-links li {
-            margin-right: 20px;
+            height: 100%;
         }
-        .nav-links li a {
-            color: #fff;
+
+        .nav-links a {
+            color: white;
             text-decoration: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        .nav-links li a:hover {
-            background-color: rgba(255, 255, 255, 0.2);
+            padding: 0 15px;
+            font-size: 0.9em;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            position: relative;
+            gap: 5px;
         }
 
-        /* Buttons */
-        .buttons-container {
-            margin: 20px;
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
-        button {
-            padding: 10px 15px;
-            margin: 5px;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: #E9772B;
+            transition: width 0.3s ease;
         }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .logout-container {
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: #E9772B;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logout-btn:hover {
+            background: #d66a24;
+            transform: translateY(-2px);
+        }
+
+        .logout-btn i {
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1200px) {
+            .nav-links a {
+                padding: 0 10px;
+                font-size: 0.85em;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .navbar {
+                height: auto;
+                padding: 10px;
+                flex-direction: column;
+            }
+
+            .logo {
+                padding: 15px;
+                width: 100%;
+                justify-content: center;
+                background: none;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                padding: 10px 0;
+                gap: 8px;
+            }
+
+            .nav-links li {
+                height: 40px;
+            }
+
+            .nav-links a {
+                padding: 0 15px;
+                border-radius: 20px;
+            }
+
+            .nav-links a::after {
+                display: none;
+            }
+
+            .logout-container {
+                width: 100%;
+                justify-content: center;
+                padding: 10px 0;
+            }
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* Page Title */
+        .page-title {
+            color: #41644A;
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .page-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: #E9772B;
+            border-radius: 3px;
+        }
+
+        /* Search Box */
         .search-box {
-            padding: 10px;
-            width: 300px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            margin-bottom: 10px;
+            width: 100%;
+            max-width: 300px;
+            padding: 12px 20px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
         }
-        .reset-btn {
-            background-color: #d9534f;
-            color: white;
+
+        .search-box:focus {
+            outline: none;
+            border-color: #41644A;
+            box-shadow: 0 0 0 3px rgba(65, 100, 74, 0.1);
         }
-        .print-btn {
-            background-color: #0275d8;
-            color: white;
+
+        /* Export Buttons Container */
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
         }
-        .pdf-btn {
-            background-color: #5cb85c;
+
+        .export-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
             color: white;
         }
 
-        /* Table */
+        .print-btn {
+            background: #41644A;
+        }
+
+        .print-btn:hover {
+            background: #2d4633;
+            transform: translateY(-2px);
+        }
+
+        .pdf-btn {
+            background: #dc3545;
+        }
+
+        .pdf-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .excel-btn {
+            background: #28a745;
+        }
+
+        .excel-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .csv-btn {
+            background: #17a2b8;
+        }
+
+        .csv-btn:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        /* Table Container */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            background-color: white;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
         }
+
         th, td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: center;
-            font-size: 14px;
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
         }
+
         th {
-            background-color: #41644A;
+            background: #41644A;
             color: white;
-            font-weight: bold;
+            font-weight: 500;
         }
+
         tr:hover {
-            background-color: #f1f1f1;
+            background: #f8f9fa;
         }
-        .logout-btn {
-            background-color: #dc3545;
-            color: white;
-            padding: 8px 15px;
-            border-radius: 5px;
-            text-decoration: none;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
+
+        /* Print Styles */
+        @media print {
+            .navbar, .search-box, .export-buttons {
+                display: none;
+            }
+
+            .container {
+                margin: 0;
+                padding: 0;
+            }
+
+            .table-container {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+
+            th {
+                background: #41644A !important;
+                color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
         }
-        .logout-btn:hover {
-            background-color: #c82333;
+
+        /* Status Message */
+        #status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .page-title {
+                font-size: 1.5em;
+            }
+
+            .export-buttons {
+                justify-content: center;
+            }
+
+            .export-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            #status-message {
+                left: 20px;
+                right: 20px;
+                top: 80px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="logo">Admin Dashboard</div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="{{ url_for('search') }}"><i class="fas fa-search"></i> Search</a></li>
+            <li><a href="{{ url_for('students') }}"><i class="fas fa-users"></i> Students</a></li>
+            <li><a href="{{ url_for('current_sit_in') }}"><i class="fas fa-chair"></i> Sit-in</a></li>
+            <li><a href="{{ url_for('sit_in_records') }}"><i class="fas fa-history"></i> Records</a></li>
+            <li><a href="{{ url_for('sit_in_report') }}"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
+            <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
+            <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+        </ul>
+        <div class="logout-container">
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
+        </div>
+    </div>
 
-<div class="navbar">
-    <div class="logo">Admin Dashboard</div>
-    <ul class="nav-links">
-        <li><a href="{{ url_for('admin_dashboard') }}">Home</a></li>
-        <li><a href="{{ url_for('search') }}">Search</a></li>
-        <li><a href="{{ url_for('students') }}">Students</a></li>
-        <li><a href="{{ url_for('current_sit_in') }}">Sit-in</a></li>
-        <li><a href="{{ url_for('sit_in_records') }}">View Sit-in Records</a></li>
-        <li><a href="{{ url_for('sit_in_report') }}">Sit-in Reports</a></li>
-        <li><a href="{{ url_for('feedback_report') }}">Feedback Reports</a></li>
-        <li><a href="{{ url_for('reservation') }}">Reservation</a></li>
-    </ul>
-    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-</div>
+    <!-- Status Message -->
+    <div id="status-message"></div>
 
-<h2>Generate Reports</h2>
+    <div class="container">
+        <h1 class="page-title">Generate Reports</h1>
 
-<!-- 🔍 Search Input -->
-<input type="text" class="search-box" id="search" onkeyup="searchTable()" placeholder="Search records...">
+        <!-- Search Input -->
+        <input type="text" class="search-box" id="search" onkeyup="searchTable()" placeholder="Search records...">
 
-<!-- 📌 Action Buttons -->
-<div class="buttons-container">
-    <button class="reset-btn" onclick="resetSessions()">Reset Sessions</button>
-    <button class="print-btn" onclick="window.print()">Print</button>
-    <button class="pdf-btn" onclick="exportToPDF()">Download PDF</button>
-</div>
+        <!-- Export Buttons -->
+        <div class="export-buttons">
+            <button class="export-btn print-btn" onclick="printReport()">
+                <i class="fas fa-print"></i>
+                Print Report
+            </button>
+            <button class="export-btn pdf-btn" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf"></i>
+                Export PDF
+            </button>
+            <button class="export-btn excel-btn" onclick="exportToExcel()">
+                <i class="fas fa-file-excel"></i>
+                Export Excel
+            </button>
+            <button class="export-btn csv-btn" onclick="exportToCSV()">
+                <i class="fas fa-file-csv"></i>
+                Export CSV
+            </button>
+        </div>
 
-<div class="table-container">
-    <table id="reportTable">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>ID Number</th>
-                <th>Last Name</th>
-                <th>First Name</th>
-                <th>Purpose</th>
-                <th>Lab</th>
-                <th>Login Time</th>
-                <th>Logout Time</th>
-                <th>Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for report in reports %}
-            <tr>
-                <td>{{ report[0] }}</td>
-                <td>{{ report[1] }}</td>
-                <td>{{ report[2] }}</td>
-                <td>{{ report[3] }}</td>
-                <td>{{ report[4] }}</td>
-                <td>{{ report[5] }}</td>
-                <td>{{ report[6] }}</td>
-                <td>{{ report[7] }}</td>
-                <td>{{ report[8] }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        
-    </table>
-</div>
+        <!-- Table Container -->
+        <div class="table-container">
+            <table id="reportTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>ID Number</th>
+                        <th>Last Name</th>
+                        <th>First Name</th>
+                        <th>Purpose</th>
+                        <th>Lab</th>
+                        <th>Login Time</th>
+                        <th>Logout Time</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td>{{ report[0] }}</td>
+                        <td>{{ report[1] }}</td>
+                        <td>{{ report[2] }}</td>
+                        <td>{{ report[3] }}</td>
+                        <td>{{ report[4] }}</td>
+                        <td>{{ report[5] }}</td>
+                        <td>{{ report[6] }}</td>
+                        <td>{{ report[7] }}</td>
+                        <td>{{ report[8] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<script>
-    // 🔍 Search Function
-    function searchTable() {
-        let input = document.getElementById("search").value.toLowerCase();
-        let rows = document.querySelectorAll("#reportTable tbody tr");
+    <script>
+        // Search Function
+        function searchTable() {
+            let input = document.getElementById("search").value.toLowerCase();
+            let rows = document.querySelectorAll("#reportTable tbody tr");
 
-        rows.forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(input) ? "" : "none";
-        });
-    }
-
-    // 🔄 Reset Sessions Function
-    function resetSessions() {
-        if (confirm("Are you sure you want to reset all student sessions?")) {
-            fetch('/reset_sessions', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => alert(data.message))
-                .catch(error => console.error('Error:', error));
+            rows.forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(input) ? "" : "none";
+            });
         }
-    }
 
-    // 📄 Export to PDF
-    function exportToPDF() {
-        const { jsPDF } = window.jspdf;
-        let doc = new jsPDF();
-        doc.text("Sit-in Reports", 10, 10);
-        doc.autoTable({ html: "#reportTable" });
-        doc.save("Sit-in_Reports.pdf");
-    }
-</script>
+        // Reset Sessions Function
+        function resetSessions() {
+            if (confirm("Are you sure you want to reset all student sessions?")) {
+                fetch('/reset_sessions', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => alert(data.message))
+                    .catch(error => console.error('Error:', error));
+            }
+        }
 
+        // Print Report
+        function printReport() {
+            window.print();
+        }
+
+        // Export to PDF
+        function exportToPDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(16);
+                doc.text("Sit-in Reports", 14, 15);
+                doc.setFontSize(12);
+                
+                // Add date
+                const today = new Date().toLocaleDateString();
+                doc.text(`Generated on: ${today}`, 14, 25);
+                
+                // Get table data
+                const table = document.getElementById('reportTable');
+                const headers = [];
+                const data = [];
+                
+                // Get headers
+                table.querySelectorAll('th').forEach(th => {
+                    headers.push(th.textContent.trim());
+                });
+                
+                // Get data
+                table.querySelectorAll('tbody tr').forEach(tr => {
+                    const row = [];
+                    tr.querySelectorAll('td').forEach(td => {
+                        row.push(td.textContent.trim());
+                    });
+                    data.push(row);
+                });
+                
+                // Add table
+                doc.autoTable({
+                    head: [headers],
+                    body: data,
+                    startY: 30,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: [65, 100, 74],
+                        textColor: 255,
+                        fontSize: 10
+                    },
+                    styles: { fontSize: 9 },
+                    columnStyles: {
+                        0: { cellWidth: 20 },
+                        1: { cellWidth: 30 },
+                        2: { cellWidth: 30 },
+                        3: { cellWidth: 30 },
+                        4: { cellWidth: 30 },
+                        5: { cellWidth: 30 },
+                        6: { cellWidth: 40 },
+                        7: { cellWidth: 20 },
+                        8: { cellWidth: 30 },
+                        9: { cellWidth: 30 }
+                    }
+                });
+                
+                doc.save("Sit-in_Reports.pdf");
+                showMessage('PDF exported successfully', 'success');
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showMessage('Error generating PDF. Please try again.', 'error');
+            }
+        }
+
+        // Export to Excel
+        function exportToExcel() {
+            const table = document.getElementById('reportTable');
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(table);
+            
+            // Add title and date
+            XLSX.utils.sheet_add_aoa(ws, [
+                ['Sit-in Reports'],
+                [`Generated on: ${new Date().toLocaleDateString()}`],
+                ['']
+            ], { origin: 'A1' });
+            
+            XLSX.utils.book_append_sheet(wb, ws, "Sit-in Reports");
+            XLSX.writeFile(wb, "Sit-in_Reports.xlsx");
+            showMessage('Excel file exported successfully', 'success');
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            const table = document.getElementById('reportTable');
+            let csv = [];
+            
+            // Add title and date
+            csv.push(['Sit-in Reports']);
+            csv.push([`Generated on: ${new Date().toLocaleDateString()}`]);
+            csv.push([]);
+            
+            // Add headers
+            const headers = [];
+            for (let th of table.querySelectorAll('th')) {
+                headers.push(th.textContent.trim());
+            }
+            csv.push(headers);
+            
+            // Add data
+            for (let tr of table.querySelectorAll('tbody tr')) {
+                const row = [];
+                for (let td of tr.querySelectorAll('td')) {
+                    row.push(td.textContent.trim());
+                }
+                csv.push(row);
+            }
+            
+            // Convert to CSV string
+            const csvContent = csv.map(row => row.join(',')).join('\n');
+            
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'Sit-in_Reports.csv';
+            link.click();
+            
+            showMessage('CSV file exported successfully', 'success');
+        }
+
+        // Show status message
+        function showMessage(message, type) {
+            const messageElement = document.getElementById('status-message');
+            messageElement.textContent = message;
+            messageElement.className = type === 'success' ? 'message-success' : 'message-error';
+            messageElement.style.display = 'block';
+            
+            setTimeout(() => {
+                messageElement.style.display = 'none';
+            }, 3000);
+        }
+    </script>
 </body>
 </html>
