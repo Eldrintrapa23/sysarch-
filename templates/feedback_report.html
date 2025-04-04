@@ -524,6 +524,85 @@
         .filter-btn {
             display: none;
         }
+
+        /* Pagination Styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 8px;
+            padding: 20px 0;
+        }
+
+        .pagination span {
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            color: #666;
+            cursor: pointer;
+            font-size: 0.9em;
+            min-width: 42px;
+            text-align: center;
+        }
+
+        .pagination .first,
+        .pagination .prev,
+        .pagination .next,
+        .pagination .last {
+            background: white;
+            border: 1px solid #dee2e6;
+        }
+
+        .pagination .page-number {
+            border: none;
+            background: none;
+        }
+
+        .pagination .page-number:hover {
+            color: #41644A;
+        }
+
+        .pagination .active {
+            background: #41644A;
+            color: white !important;
+            border-radius: 4px;
+        }
+
+        .pagination span:not(.active):not(.page-number):hover {
+            border-color: #41644A;
+            color: #41644A;
+        }
+
+        .pagination .disabled {
+            color: #999;
+            border-color: #dee2e6;
+            pointer-events: none;
+        }
+
+        .pagination .first::before {
+            content: "« ";
+        }
+
+        .pagination .prev::before {
+            content: "‹ ";
+        }
+
+        .pagination .next::after {
+            content: " ›";
+        }
+
+        .pagination .last::after {
+            content: " »";
+        }
+
+        .pagination .first::before,
+        .pagination .prev::before,
+        .pagination .next::after,
+        .pagination .last::after {
+            display: inline-block;
+            color: inherit;
+        }
     </style>
 </head>
 <body>
@@ -609,20 +688,102 @@
                     {% endfor %}
                 </tbody>
             </table>
+
+            <!-- Pagination -->
+            <div class="pagination">
+                <span class="first" onclick="changePage(1)">First</span>
+                <span class="prev" onclick="changePage(currentPage - 1)">Previous</span>
+                <span id="page-numbers"></span>
+                <span class="next" onclick="changePage(currentPage + 1)">Next</span>
+                <span class="last" onclick="changePage(totalPages)">Last</span>
+            </div>
         </div>
     </div>
 
     <script>
-        // Search feedback
-        function searchFeedback() {
-            let searchTerm = document.getElementById("feedback-search").value.toLowerCase();
-            let rows = document.getElementById("feedback-table").getElementsByTagName("tr");
+        let currentPage = 1;
+        let rowsPerPage = 10;
+        let filteredRows = [];
+        let totalPages = 1;
 
-            for (let row of rows) {
-                let text = row.textContent.toLowerCase();
-                row.style.display = text.includes(searchTerm) ? "" : "none";
+        // Initialize pagination
+        function initializePagination() {
+            const tableRows = Array.from(document.getElementById("feedback-table").getElementsByTagName("tr"));
+            filteredRows = tableRows;
+            updatePagination();
+            displayCurrentPage();
+        }
+
+        // Update pagination controls
+        function updatePagination() {
+            totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+            
+            // Update navigation buttons
+            document.querySelector('.first').className = `first${currentPage === 1 ? ' disabled' : ''}`;
+            document.querySelector('.prev').className = `prev${currentPage === 1 ? ' disabled' : ''}`;
+            document.querySelector('.next').className = `next${currentPage === totalPages ? ' disabled' : ''}`;
+            document.querySelector('.last').className = `last${currentPage === totalPages ? ' disabled' : ''}`;
+
+            // Generate page numbers
+            const pageNumbers = document.getElementById('page-numbers');
+            pageNumbers.innerHTML = '';
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageSpan = document.createElement('span');
+                pageSpan.textContent = i;
+                pageSpan.className = `page-number${i === currentPage ? ' active' : ''}`;
+                pageSpan.onclick = () => changePage(i);
+                pageNumbers.appendChild(pageSpan);
             }
         }
+
+        // Display current page
+        function displayCurrentPage() {
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const tableRows = Array.from(document.getElementById("feedback-table").getElementsByTagName("tr"));
+            
+            tableRows.forEach((row, index) => {
+                if (index >= start && index < end && filteredRows.includes(row)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+            
+            updatePagination();
+        }
+
+        // Change page
+        function changePage(newPage) {
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                displayCurrentPage();
+            }
+        }
+
+        // Search feedback
+        function searchFeedback() {
+            const searchTerm = document.getElementById("feedback-search").value.toLowerCase();
+            const tableRows = Array.from(document.getElementById("feedback-table").getElementsByTagName("tr"));
+            
+            filteredRows = tableRows.filter(row => {
+                const text = row.textContent.toLowerCase();
+                return text.includes(searchTerm);
+            });
+            
+            currentPage = 1;
+            displayCurrentPage();
+        }
+
+        // Initialize pagination when the page loads
+        document.addEventListener('DOMContentLoaded', initializePagination);
+
+        // Add event listener for search input
+        document.getElementById('feedback-search').addEventListener('keyup', searchFeedback);
 
         // Delete feedback
         function deleteFeedback(feedbackId) {
@@ -665,9 +826,6 @@
                 messageElement.style.display = 'none';
             }, 3000);
         }
-
-        // Add event listener for search input
-        document.getElementById('feedback-search').addEventListener('keyup', searchFeedback);
 
         // Print Report
         function printReport() {

@@ -210,6 +210,66 @@
             border-radius: 3px;
         }
 
+        /* Search Box Styles */
+        .search-container {
+            margin: 0 auto 30px;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            color: #333;
+            background: transparent;
+        }
+
+        .search-box:focus {
+            outline: none;
+        }
+
+        .search-box::placeholder {
+            color: #757575;
+            font-weight: 400;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            .page-title {
+                font-size: 1.5em;
+            }
+
+            .pagination {
+                flex-wrap: wrap;
+            }
+
+            .search-container {
+                margin: 0 20px 30px;
+            }
+        }
+
         /* Chart Container */
         .chart-container {
             background: white;
@@ -228,6 +288,34 @@
             margin-top: 20px;
             max-height: 500px;
             overflow-y: auto;
+            position: relative;
+        }
+
+        /* Search Box Styles */
+        .column-search-container {
+            position: absolute;
+            top: -45px;
+            left: 50px; /* Aligned with Sit-in Number column */
+            width: 200px;
+            z-index: 2;
+        }
+
+        .column-search {
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+
+        .column-search:focus {
+            outline: none;
+        }
+
+        .column-search::placeholder {
+            color: #757575;
         }
 
         table {
@@ -289,31 +377,6 @@
             border-color: #ddd;
             pointer-events: none;
         }
-
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                gap: 15px;
-                padding: 15px;
-            }
-
-            .nav-links {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .table-container {
-                overflow-x: auto;
-            }
-
-            .page-title {
-                font-size: 1.5em;
-            }
-
-            .pagination {
-                flex-wrap: wrap;
-            }
-        }
     </style>
 </head>
 <body>
@@ -342,6 +405,11 @@
     <div class="container">
         <h1 class="page-title">Current Sit-in Records</h1>
 
+        <!-- Search Box -->
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-box" placeholder="Search records...">
+        </div>
+
         <!-- Chart Container -->
         <div class="chart-container">
             <canvas id="sitInChart" width="400" height="200"></canvas>
@@ -349,6 +417,11 @@
 
         <!-- Table Container -->
         <div class="table-container">
+            <!-- Column Search -->
+            <div class="column-search-container">
+                <input type="text" class="column-search" placeholder="Search sit-in number..." id="sitInSearch">
+            </div>
+            
             <table>
                 <thead>
                     <tr>
@@ -445,6 +518,36 @@
                     }
                 }
             }
+        });
+
+        // Add search functionality
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            let searchText = this.value.toLowerCase();
+            let tableRows = document.querySelectorAll('table tbody tr');
+            
+            tableRows.forEach(row => {
+                let text = row.textContent.toLowerCase();
+                if(text.includes(searchText)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+
+        // Add column-specific search functionality
+        document.getElementById('sitInSearch').addEventListener('keyup', function() {
+            let searchText = this.value.toLowerCase();
+            let tableRows = document.querySelectorAll('table tbody tr');
+            
+            tableRows.forEach(row => {
+                let sitInNumber = row.children[1].textContent.toLowerCase(); // Index 1 is the Sit-in Number column
+                if(sitInNumber.includes(searchText)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         });
     </script>
 </body>
