@@ -525,10 +525,11 @@ def admin_dashboard():
     cur.execute('SELECT COUNT(*) FROM users')
     total_students = cur.fetchone()[0]
 
-    cur.execute('SELECT COUNT(*) FROM current_sit_in WHERE date = ?', (datetime.today().strftime('%Y-%m-%d'),))
+    # Count all active sit-in sessions
+    cur.execute('SELECT COUNT(*) FROM current_sit_in WHERE status = "Ongoing"')
     current_sit_in = cur.fetchone()[0]
 
-    cur.execute('SELECT COUNT(*) FROM sit_in_records WHERE date = ?', (datetime.today().strftime('%Y-%m-%d'),))
+    cur.execute('SELECT COUNT(*) FROM sit_in_records')
     total_sit_in = cur.fetchone()[0]
 
     # Get announcements (including title and content)
