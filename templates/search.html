@@ -235,36 +235,39 @@
             border-collapse: collapse;
         }
 
-        th, td {
-            padding: 15px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-
-        /* Center align specific columns */
-        th:nth-child(4), /* Middle Name column */
-        td:nth-child(4),
-        th:nth-child(5), /* Course column */
-        td:nth-child(5),
-        th:nth-child(6), /* Year Level column */
-        td:nth-child(6),
-        th:nth-child(7), /* Email Address column */
-        td:nth-child(7),
-        th:nth-child(8), /* Remaining Sessions column */
-        td:nth-child(8),
-        th:nth-child(9), /* Action column */
-        td:nth-child(9) {
-            text-align: center;
-        }
-
         th {
             background: #41644A;
             color: white;
             font-weight: 500;
+            padding: 15px;
+            text-align: center;
         }
 
-        tr:hover {
-            background: #f8f9fa;
+        td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            background: #f8f9fa;  /* Light gray background for rows */
+        }
+
+        tr:nth-child(even) td {
+            background: white;  /* White background for even rows */
+        }
+
+        tr:hover td {
+            background: #f1f1f1;  /* Lighter background on hover */
+        }
+
+        /* Center the button container */
+        .button-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Make the table header text bold */
+        thead tr th {
+            font-weight: 600;
         }
 
         /* Sit-in Button */
@@ -280,12 +283,6 @@
             align-items: center;
             gap: 6px;
             margin: 0 auto; /* Center the button */
-        }
-
-        /* Button container for centering */
-        .button-container {
-            display: flex;
-            justify-content: center;
         }
 
         /* Modal */
@@ -501,6 +498,7 @@
             <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
             <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
             <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-trophy"></i>Lab Resources</a></li>
         </ul>
         <div class="logout-container">
             <a href="{{ url_for('logout') }}" class="logout-btn">

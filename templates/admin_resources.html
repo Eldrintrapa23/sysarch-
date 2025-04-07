@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Resources Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .header {
+            color: #41644A;
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #E9772B;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .resource-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .resource-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .resource-card h3 {
+            color: #41644A;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .resource-card p {
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .resource-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .resource-details p {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+            color: #555;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #41644A;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .status-enabled {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-disabled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .in-use {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .maintenance {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .resource-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background: white;
+            margin: 50px auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 15px;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #41644A;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: #41644A;
+            padding: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: 70px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: white;
+            padding: 0 25px;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            height: 100%;
+            padding: 0;
+            flex-grow: 1;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .nav-links li {
+            height: 100%;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0 15px;
+            font-size: 0.9em;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            position: relative;
+            gap: 5px;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: #E9772B;
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .logout-container {
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: #E9772B;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logout-btn:hover {
+            background: #d66a24;
+            transform: translateY(-2px);
+        }
+
+        .logout-btn i {
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 1200px) {
+            .nav-links a {
+                padding: 0 10px;
+                font-size: 0.85em;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .navbar {
+                height: auto;
+                padding: 10px;
+                flex-direction: column;
+            }
+
+            .logo {
+                padding: 15px;
+                width: 100%;
+                justify-content: center;
+                background: none;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                padding: 10px 0;
+                gap: 8px;
+            }
+
+            .nav-links li {
+                height: 40px;
+            }
+
+            .nav-links a {
+                padding: 0 15px;
+                border-radius: 20px;
+            }
+
+            .nav-links a::after {
+                display: none;
+            }
+
+            .logout-container {
+                width: 100%;
+                justify-content: center;
+                padding: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Add Navbar -->
+    <div class="navbar">
+        <div class="logo">Admin Dashboard</div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="{{ url_for('search') }}"><i class="fas fa-search"></i> Search</a></li>
+            <li><a href="{{ url_for('students') }}"><i class="fas fa-users"></i> Students</a></li>
+            <li><a href="{{ url_for('current_sit_in') }}"><i class="fas fa-chair"></i> Sit-in</a></li>
+            <li><a href="{{ url_for('sit_in_records') }}"><i class="fas fa-history"></i> Records</a></li>
+            <li><a href="{{ url_for('sit_in_report') }}"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
+            <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
+            <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-laptop-code"></i> Lab Resources</a></li>
+        </ul>
+        <div class="logout-container">
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div>
+            <i class="fas fa-laptop-code"></i>
+                Lab Resources Management
+            </div>
+            <button class="btn btn-primary" onclick="openAddModal()">
+                <i class="fas fa-plus"></i> Add New Resource
+            </button>
+        </div>
+
+        <div class="resources-grid">
+            {% for resource in resources %}
+            <div class="resource-card">
+                <h3>
+                    <span><i class="fas fa-{{ resource.icon }}"></i> {{ resource.name }}</span>
+                    <span class="status {{ 'status-enabled' if resource.is_enabled else 'status-disabled' }}">
+                        {{ 'Enabled' if resource.is_enabled else 'Disabled' }}
+                    </span>
+                </h3>
+                <p>{{ resource.description }}</p>
+                <div class="resource-details">
+                    <p><i class="fas fa-info-circle"></i> Type: {{ resource.type|title }}</p>
+                    <p><i class="fas fa-clock"></i> Last Updated: {{ resource.last_updated }}</p>
+                    <p><i class="fas fa-user"></i> Updated by: {{ resource.updated_by }}</p>
+                    <p><span class="status {{ resource.status }}">{{ resource.status|title }}</span></p>
+                </div>
+                <div class="resource-controls">
+                    <button class="btn btn-primary" onclick="editResource('{{ resource.id }}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    {% if resource.is_enabled %}
+                    <button class="btn btn-danger" onclick="toggleResource('{{ resource.id }}', false)">
+                        <i class="fas fa-ban"></i> Disable
+                    </button>
+                    {% else %}
+                    <button class="btn btn-primary" onclick="toggleResource('{{ resource.id }}', true)">
+                        <i class="fas fa-check"></i> Enable
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+                </div>
+            </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="resourceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2 id="modalTitle">Add New Resource</h2>
+            <form id="resourceForm" onsubmit="handleSubmit(event)">
+                <input type="hidden" id="resourceId" name="id">
+                <div class="form-group">
+                    <label for="name">Resource Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="type">Type</label>
+                    <select id="type" name="type" required>
+                        <option value="computer">Computer Lab</option>
+                        <option value="software">Software</option>
+                        <option value="network">Network Resource</option>
+                        <option value="printer">Printing Service</option>
+                    </select>
+            </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status" required>
+                        <option value="available">Available</option>
+                        <option value="in-use">In Use</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+            </div>
+                <button type="submit" class="btn btn-primary">Save Resource</button>
+            </form>
+                </div>
+            </div>
+
+    <script>
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Resource';
+            document.getElementById('resourceForm').reset();
+            document.getElementById('resourceId').value = '';
+            document.getElementById('resourceModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('resourceModal').style.display = 'none';
+        }
+
+        function editResource(id) {
+            fetch(`/api/resources/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const resource = data.resource;
+                        document.getElementById('modalTitle').textContent = 'Edit Resource';
+                        document.getElementById('resourceId').value = resource.id;
+                        document.getElementById('name').value = resource.name;
+                        document.getElementById('type').value = resource.type;
+                        document.getElementById('description').value = resource.description;
+                        document.getElementById('status').value = resource.status;
+                        document.getElementById('resourceModal').style.display = 'block';
+                    }
+                });
+        }
+
+        function toggleResource(id, enable) {
+            if (confirm(`Are you sure you want to ${enable ? 'enable' : 'disable'} this resource?`)) {
+                fetch('/api/resources/toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ id, enable })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const id = formData.get('id');
+            const url = id ? `/api/resources/${id}` : '/api/resources';
+            
+            fetch(url, {
+                method: id ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(formData))
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('resourceModal')) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

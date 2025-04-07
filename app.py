@@ -9,9 +9,12 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Secret key for session management
 
 # Configure profile picture upload
-UPLOAD_FOLDER = 'static/profile_pics'
+UPLOAD_FOLDER = os.path.join('static', 'profile_pics')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# Create upload directory if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -127,6 +130,28 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     ''')
+
+    # Create lab_resources table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS lab_resources (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL,
+            description TEXT,
+            status TEXT DEFAULT 'available',
+            icon TEXT DEFAULT 'desktop',
+            is_enabled BOOLEAN DEFAULT 1,
+            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_by TEXT
+        )
+    ''')
+
+    # Add icon column if it doesn't exist
+    try:
+        cursor.execute('SELECT icon FROM lab_resources LIMIT 1')
+    except sqlite3.OperationalError:
+        cursor.execute('ALTER TABLE lab_resources ADD COLUMN icon TEXT DEFAULT "desktop"')
+        conn.commit()
 
     conn.commit()
     conn.close()
@@ -247,37 +272,74 @@ def edit_profile():
         email_address = request.form['email_address']
         new_password = request.form.get('password', '')
 
-        with sqlite3.connect('users.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                UPDATE users SET firstname = ?, lastname = ?, middlename = ?, 
-                course = ?, year_level = ?, email_address = ? WHERE id = ?
-            ''', (firstname, lastname, middlename, course, year_level, email_address, user_id))
-
-            # Update password if provided
-            if new_password:
-                hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
-                cursor.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_password, user_id))
-
-            # Handle profile picture upload
+        try:
+            # Handle file upload
             if 'profile_pic' in request.files:
                 file = request.files['profile_pic']
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(file_path)
+                if file and file.filename != '':
+                    # Check if file extension is allowed
+                    if not allowed_file(file.filename):
+                        flash("Invalid file type! Allowed types are: png, jpg, jpeg, gif", "danger")
+                        return redirect(url_for('edit_profile'))
                     
-                    cursor.execute('UPDATE users SET profile_pic = ? WHERE id = ?', (filename, user_id))
+                    # Create a unique filename using user_id and timestamp
+                    filename = f"profile_{user_id}_{int(datetime.now().timestamp())}.{file.filename.rsplit('.', 1)[1].lower()}"
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    
+                    # Save the file
+                    file.save(filepath)
+                    
+                    # Update database with new filename
+                    with sqlite3.connect('users.db') as conn:
+                        cursor = conn.cursor()
+                        # Delete old profile picture if it exists
+                        cursor.execute('SELECT profile_pic FROM users WHERE id = ?', (user_id,))
+                        old_pic = cursor.fetchone()
+                        if old_pic and old_pic[0]:
+                            old_filepath = os.path.join(app.config['UPLOAD_FOLDER'], old_pic[0])
+                            if os.path.exists(old_filepath):
+                                try:
+                                    os.remove(old_filepath)
+                                except:
+                                    pass
+                        
+                        # Update with new profile picture
+                        cursor.execute('UPDATE users SET profile_pic = ? WHERE id = ?', 
+                                     (filename, user_id))
+                        conn.commit()
 
-            conn.commit()
+            # Update other user information
+            with sqlite3.connect('users.db') as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    UPDATE users 
+                    SET firstname = ?, lastname = ?, middlename = ?, 
+                        course = ?, year_level = ?, email_address = ? 
+                    WHERE id = ?
+                ''', (firstname, lastname, middlename, course, year_level, email_address, user_id))
 
-        flash("Profile updated successfully!", "success")
-        return redirect(url_for('student_dashboard'))
+                # Update password if provided
+                if new_password:
+                    hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+                    cursor.execute('UPDATE users SET password = ? WHERE id = ?', 
+                                 (hashed_password, user_id))
 
-    # Fetch updated user data
+                conn.commit()
+
+            flash("Profile updated successfully!", "success")
+            return redirect(url_for('view_profile'))
+
+        except Exception as e:
+            flash(f"Error updating profile: {str(e)}", "danger")
+            return redirect(url_for('edit_profile'))
+
+    # Fetch user data for the form
     with sqlite3.connect('users.db') as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT idno, lastname, firstname, middlename, course, year_level, email_address, profile_pic FROM users WHERE id = ?", (user_id,))
+        cursor.execute("""
+            SELECT idno, lastname, firstname, middlename, course, 
+                   year_level, email_address, profile_pic 
+            FROM users WHERE id = ?""", (user_id,))
         user = cursor.fetchone()
 
     return render_template('edit.html', user=user)
@@ -319,64 +381,68 @@ def sit_history():
     
     id_number = user[0]
 
-    # Fetch student sit-in history
+    # Fetch student sit-in history with feedback status
     cursor.execute("""
-        SELECT lab, purpose, login_time, logout_time, date 
-        FROM sit_in_records 
-        WHERE id_number = ?
-        ORDER BY date DESC, login_time DESC
+        SELECT 
+            s.lab, 
+            s.purpose, 
+            s.login_time, 
+            s.logout_time, 
+            s.date,
+            CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END as has_feedback
+        FROM sit_in_records s
+        LEFT JOIN feedback f ON s.id_number = f.id_number 
+            AND s.lab = f.lab 
+            AND s.date = DATE(f.submitted_on)
+        WHERE s.id_number = ?
+        ORDER BY s.date DESC, s.login_time DESC
     """, (id_number,))
     history = cursor.fetchall()
-
-    # Fetch feedback for the student
-    cursor.execute("""
-        SELECT feedback_text, lab, submitted_on 
-        FROM feedback 
-        WHERE id_number = ?
-        ORDER BY submitted_on DESC
-    """, (id_number,))
-    feedbacks = cursor.fetchall()
 
     # Handle feedback submission
     if request.method == 'POST':
         feedback_text = request.form.get('feedback')
         lab = request.form.get('lab')
+        date = request.form.get('date')
         
-        if feedback_text and lab:  # Ensure both feedback and lab are provided
-            # Check if student has already submitted feedback for this lab
-            cursor.execute("""
-                SELECT id FROM feedback 
-                WHERE id_number = ? AND lab = ?
-            """, (id_number, lab))
-            existing_feedback = cursor.fetchone()
-            
-            if existing_feedback:
-                return jsonify({
-                    "status": "error",
-                    "message": "You have already submitted feedback for this lab session."
-                })
+        if not all([feedback_text, lab, date]):
+            return jsonify({
+                'status': 'error',
+                'message': 'All fields are required!'
+            })
 
-            # Insert feedback with the provided lab and default status
+        # Check if feedback already exists for this session
+        cursor.execute("""
+            SELECT id FROM feedback 
+            WHERE id_number = ? AND lab = ? AND DATE(submitted_on) = ?
+        """, (id_number, lab, date))
+        
+        if cursor.fetchone():
+            return jsonify({
+                'status': 'error',
+                'message': 'You have already submitted feedback for this session.'
+            })
+
+        # Insert new feedback
+        try:
             cursor.execute("""
                 INSERT INTO feedback (id_number, lab, feedback_text, submitted_on, status) 
                 VALUES (?, ?, ?, datetime('now'), 'pending')
             """, (id_number, lab, feedback_text))
             conn.commit()
-
+            
             return jsonify({
-                "status": "success", 
-                "message": "Thank you! Your feedback has been submitted successfully.", 
-                "sit_lab": lab,
-                "feedback_text": feedback_text
+                'status': 'success',
+                'message': 'Thank you! Your feedback has been submitted successfully.'
             })
-        else:
+        except Exception as e:
             return jsonify({
-                "status": "error",
-                "message": "Both feedback and lab are required!"
+                'status': 'error',
+                'message': f'Error submitting feedback: {str(e)}'
             })
 
     conn.close()
-    return render_template('history.html', history=history, feedbacks=feedbacks, id_number=id_number)
+    return render_template('history.html', history=history)
 
 @app.route('/admin/feedbacks')
 def view_feedbacks():
@@ -1244,6 +1310,318 @@ def leaderboard():
     except Exception as e:
         flash(f'Error loading leaderboard: {str(e)}', 'error')
         return redirect(url_for('admin_dashboard'))
+
+@app.route('/lab_resources')
+def lab_resources():
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT name, type, description, status, icon, last_updated
+        FROM lab_resources
+        WHERE is_enabled = 1
+        ORDER BY name
+    """)
+    
+    resources = [
+        {
+            'name': row[0],
+            'type': row[1],
+            'description': row[2],
+            'status': row[3],
+            'icon': row[4] or 'desktop',  # Use default icon if none specified
+            'last_updated': row[5]
+        }
+        for row in cursor.fetchall()
+    ]
+    
+    conn.close()
+    return render_template('lab_resources.html', resources=resources)
+
+@app.route('/lab_schedule')
+def lab_schedule():
+    return render_template('lab_schedule.html')
+
+@app.route('/admin_resources')
+def admin_resources():
+    if 'admin_username' not in session:
+        flash("Admin access required!", "danger")
+        return redirect(url_for('admin_login'))
+        
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT id, name, type, description, status, icon, is_enabled, 
+               last_updated, updated_by
+        FROM lab_resources
+        ORDER BY name
+    """)
+    resources = [
+        {
+            'id': row[0],
+            'name': row[1],
+            'type': row[2],
+            'description': row[3],
+            'status': row[4],
+            'icon': row[5] or 'desktop',  # default icon if none specified
+            'is_enabled': bool(row[6]),
+            'last_updated': row[7],
+            'updated_by': row[8]
+        }
+        for row in cursor.fetchall()
+    ]
+    
+    conn.close()
+    return render_template('admin_resources.html', resources=resources)
+
+@app.route('/api/resources', methods=['POST'])
+def create_resource():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        data = request.json
+        
+        # Validate required fields
+        required_fields = ['name', 'type', 'status']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    'success': False,
+                    'message': f'{field} is required'
+                })
+        
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO lab_resources (
+                name, type, description, status, icon, 
+                is_enabled, updated_by
+            )
+            VALUES (?, ?, ?, ?, ?, 1, ?)
+        """, (
+            data['name'],
+            data['type'],
+            data.get('description', ''),
+            data['status'],
+            data.get('icon', 'desktop'),
+            session['admin_username']
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Resource created successfully'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/resources/<int:id>', methods=['GET'])
+def get_resource(id):
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, name, type, description, status, is_enabled
+            FROM lab_resources
+            WHERE id = ?
+        """, (id,))
+        
+        row = cursor.fetchone()
+        if row:
+            resource = {
+                'id': row[0],
+                'name': row[1],
+                'type': row[2],
+                'description': row[3],
+                'status': row[4],
+                'is_enabled': bool(row[5])
+            }
+            return jsonify({'success': True, 'resource': resource})
+        else:
+            return jsonify({'success': False, 'message': 'Resource not found'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/resources/<int:id>', methods=['PUT'])
+def update_resource(id):
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        data = request.json
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE lab_resources 
+            SET name = ?, type = ?, description = ?, status = ?, icon = ?,
+                last_updated = CURRENT_TIMESTAMP, updated_by = ?
+            WHERE id = ?
+        """, (
+            data['name'],
+            data['type'],
+            data['description'],
+            data['status'],
+            data.get('icon', 'desktop'),  # Use default icon if not provided
+            session['admin_username'],
+            id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Resource updated successfully'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/resources/toggle', methods=['POST'])
+def toggle_resource():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        data = request.json
+        resource_id = data.get('id')
+        enable = data.get('enable')
+        
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE lab_resources 
+            SET is_enabled = ?,
+                last_updated = CURRENT_TIMESTAMP,
+                updated_by = ?
+            WHERE id = ?
+        """, (1 if enable else 0, session['admin_username'], resource_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Resource {"enabled" if enable else "disabled"} successfully'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/api/resource_types')
+def get_resource_types():
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT DISTINCT type 
+        FROM lab_resources 
+        WHERE is_enabled = 1
+    """)
+    
+    types = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    
+    return jsonify({'types': types})
+
+@app.route('/api/resources/filter/<string:type>')
+def filter_resources(type):
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT name, type, description, status, icon
+        FROM lab_resources
+        WHERE is_enabled = 1 AND type = ?
+        ORDER BY name
+    """, (type,))
+    
+    resources = [
+        {
+            'name': row[0],
+            'type': row[1],
+            'description': row[2],
+            'status': row[3],
+            'icon': row[4] or 'desktop'
+        }
+        for row in cursor.fetchall()
+    ]
+    
+    conn.close()
+    return jsonify({'resources': resources})
+
+@app.route('/api/resources/search')
+def search_resources():
+    query = request.args.get('q', '')
+    
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT name, type, description, status, icon
+        FROM lab_resources
+        WHERE is_enabled = 1 
+        AND (name LIKE ? OR description LIKE ? OR type LIKE ?)
+        ORDER BY name
+    """, (f'%{query}%', f'%{query}%', f'%{query}%'))
+    
+    resources = [
+        {
+            'name': row[0],
+            'type': row[1],
+            'description': row[2],
+            'status': row[3],
+            'icon': row[4] or 'desktop'
+        }
+        for row in cursor.fetchall()
+    ]
+    
+    conn.close()
+    return jsonify({'resources': resources})
+
+@app.route('/api/resources/stats')
+def get_resource_stats():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+        
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    
+    # Get total resources
+    cursor.execute("SELECT COUNT(*) FROM lab_resources")
+    total = cursor.fetchone()[0]
+    
+    # Get enabled resources
+    cursor.execute("SELECT COUNT(*) FROM lab_resources WHERE is_enabled = 1")
+    enabled = cursor.fetchone()[0]
+    
+    # Get resources by status
+    cursor.execute("""
+        SELECT status, COUNT(*) 
+        FROM lab_resources 
+        WHERE is_enabled = 1 
+        GROUP BY status
+    """)
+    status_counts = dict(cursor.fetchall())
+    
+    conn.close()
+    
+    return jsonify({
+        'total': total,
+        'enabled': enabled,
+        'disabled': total - enabled,
+        'status_counts': status_counts
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

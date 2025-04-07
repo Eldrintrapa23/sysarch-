@@ -278,10 +278,17 @@
                     <td>{{ record[3] or 'Ongoing' }}</td>
                     <td>{{ record[4] }}</td>
                     <td>
-                        <button class="feedback-btn" onclick="openFeedbackModal('{{ record[0] }}', '{{ record[4] }}')">
-                            <i class="fas fa-comment"></i>
-                            Submit Feedback
-                        </button>
+                        {% if record[5] == 0 %}
+                            <button class="feedback-btn" onclick="openFeedbackModal('{{ record[0] }}', '{{ record[4] }}')">
+                                <i class="fas fa-comment"></i>
+                                Submit Feedback
+                            </button>
+                        {% else %}
+                            <button class="feedback-btn submitted" disabled>
+                                <i class="fas fa-check"></i>
+                                Feedback Submitted
+                            </button>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

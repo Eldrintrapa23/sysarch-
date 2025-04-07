@@ -219,7 +219,7 @@
     <div class="sidebar">
         <div class="profile-section">
             <a href="{{ url_for('view_profile') }}" class="profile-link">
-                <img src="{{ url_for('static', filename='profile_pics/' + (user[8] if user[8] else 'default-avatar.jpg')) }}" alt="Profile Picture">
+                <img src="{{ url_for('static', filename='profile_pics/' + (user[7] if user[7] else 'default-avatar.jpg')) }}" alt="Profile Picture">
                 <h3>{{ session['id number'] }}</h3>
                 <p>{{ session['course'] }}</p>
             </a>
@@ -236,6 +236,14 @@
             <a href="{{ url_for('lab_rules') }}">
                 <i class="fas fa-tools"></i>
                 <span>Lab Rules</span>
+            </a>
+            <a href="{{ url_for('lab_resources') }}">
+                <i class="fas fa-laptop-code"></i>
+                <span>Lab Resources</span>
+            </a>
+            <a href="{{ url_for('lab_schedule') }}">
+                <i class="fas fa-clock"></i>
+                <span>Lab Schedule</span>
             </a>
             <a href="{{ url_for('sessions') }}">
                 <i class="fas fa-calendar-alt"></i>

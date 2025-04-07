@@ -162,7 +162,7 @@
     <div class="container">
         <div class="header">My Profile</div>
 
-        <img src="{{ url_for('static', filename='profile_pics/' + (user[8] if user[8] else 'default-avatar.jpg')) }}" 
+        <img src="{{ url_for('static', filename='profile_pics/' + (user[7] if user[7] else 'default-avatar.jpg')) }}" 
              alt="Profile Picture" class="profile-pic">
         
         <div class="name">{{ user[2] }} {{ user[1] }}</div>
@@ -174,7 +174,6 @@
             <div class="info-item"><strong>Course:</strong> {{ user[4] }}</div>
             <div class="info-item"><strong>Year Level:</strong> {{ user[5] }}</div>
             <div class="info-item"><strong>Email:</strong> {{ user[6] }}</div>
-            <div class="info-item"><strong>Username:</strong> {{ user[7] }}</div>
         </div>
 
         <div class="button-group">
