@@ -1336,7 +1336,7 @@ def lab_resources():
     ]
     
     conn.close()
-    return render_template('lab_resources.html', resources=resources)
+    return render_template('', resources=resources)
 
 @app.route('/lab_schedule')
 def lab_schedule():
@@ -1373,7 +1373,7 @@ def admin_resources():
     ]
     
     conn.close()
-    return render_template('admin_resources.html', resources=resources)
+    return render_template('', resources=resources)
 
 @app.route('/api/resources', methods=['POST'])
 def create_resource():
