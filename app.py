@@ -653,27 +653,33 @@ def posted():
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     students = []
-    search_query = request.form.get('search_query', '')
+    search_query = request.form.get('search_query', '').strip()
     
     with sqlite3.connect('users.db') as conn:
         cursor = conn.cursor()
+        
+        # If there's a search query, filter the results
         if search_query:
             query = '''
                 SELECT idno, lastname, firstname, middlename, course, year_level, email_address, remaining_sessions
                 FROM users
                 WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ?
+                ORDER BY lastname, firstname
             '''
-            cursor.execute(query, (f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'))
+            search_param = f'%{search_query}%'
+            cursor.execute(query, (search_param, search_param, search_param))
         else:
+            # If no search query or reset was clicked, show all students
             query = '''
                 SELECT idno, lastname, firstname, middlename, course, year_level, email_address, remaining_sessions
                 FROM users
+                ORDER BY lastname, firstname
             '''
             cursor.execute(query)
         
         students = cursor.fetchall()
 
-    return render_template('search.html', students=students)
+    return render_template('search.html', students=students, search_query=search_query)
 
 @app.route('/students')
 def students():
@@ -846,11 +852,20 @@ def sit_in_records(page=1):
 
 @app.route('/sit-in-reports')
 def sit_in_reports():
+    if 'admin_username' not in session:
+        flash("Admin access required!", "danger")
+        return redirect(url_for('admin_login'))
+
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
 
-    # Fetch sit-in records with student details
-    cursor.execute("""
+    # Get filter parameters
+    lab = request.args.get('lab', '')
+    purpose = request.args.get('purpose', '')
+    search = request.args.get('search', '').strip()
+
+    # Build the query with filters
+    query = """
         SELECT 
             s.id, 
             s.id_number, 
@@ -863,12 +878,51 @@ def sit_in_reports():
             s.date 
         FROM sit_in_records s
         JOIN users u ON s.id_number = u.idno
-        ORDER BY s.date DESC, s.login_time DESC
-    """)
+        WHERE 1=1
+    """
+    params = []
+
+    if lab:
+        query += " AND s.lab = ?"
+        params.append(lab)
+    
+    if purpose:
+        query += " AND s.purpose = ?"
+        params.append(purpose)
+    
+    if search:
+        query += """ AND (
+            s.id_number LIKE ? OR 
+            u.lastname LIKE ? OR 
+            u.firstname LIKE ? OR
+            (u.lastname || ' ' || u.firstname) LIKE ? OR
+            (u.firstname || ' ' || u.lastname) LIKE ?
+        )"""
+        search_param = f'%{search}%'
+        params.extend([search_param] * 5)
+
+    query += " ORDER BY s.date DESC, s.login_time DESC"
+
+    # Execute the query
+    cursor.execute(query, params)
     records = cursor.fetchall()
 
+    # Get unique labs and purposes for filters
+    cursor.execute("SELECT DISTINCT lab FROM sit_in_records ORDER BY lab")
+    labs = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute("SELECT DISTINCT purpose FROM sit_in_records ORDER BY purpose")
+    purposes = [row[0] for row in cursor.fetchall()]
+
     conn.close()
-    return render_template('sit_in_reports.html', reports=records)
+
+    return render_template('sit_in_reports.html', 
+                         reports=records,
+                         labs=labs,
+                         purposes=purposes,
+                         current_lab=lab,
+                         current_purpose=purpose,
+                         search=search)
 
 @app.route('/logouts/<int:id_number>')
 def logouts(id_number):
@@ -1336,7 +1390,7 @@ def lab_resources():
     ]
     
     conn.close()
-    return render_template('', resources=resources)
+    return render_template('lab_resources.html', resources=resources)
 
 @app.route('/lab_schedule')
 def lab_schedule():
@@ -1373,7 +1427,7 @@ def admin_resources():
     ]
     
     conn.close()
-    return render_template('', resources=resources)
+    return render_template('admin_resources.html', resources=resources)
 
 @app.route('/api/resources', methods=['POST'])
 def create_resource():
@@ -1622,6 +1676,49 @@ def get_resource_stats():
         'disabled': total - enabled,
         'status_counts': status_counts
     })
+
+@app.route('/reset_student_sessions/<string:idno>', methods=['POST'])
+def reset_student_sessions(idno):
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        with sqlite3.connect('users.db') as conn:
+            cursor = conn.cursor()
+            
+            # Get student's course to determine session count
+            cursor.execute("SELECT course FROM users WHERE idno = ?", (idno,))
+            result = cursor.fetchone()
+            
+            if not result:
+                return jsonify({'success': False, 'message': 'Student not found'})
+            
+            # Set sessions based on course (BSIT: 30, Others: 15)
+            new_sessions = 30 if result[0].upper() == 'BSIT' else 15
+            
+            # Reset sessions and points for the specific student
+            cursor.execute("""
+                UPDATE users 
+                SET remaining_sessions = ?,
+                    points = 0
+                WHERE idno = ?
+            """, (new_sessions, idno))
+            
+            # Clear any ongoing sit-ins for this student
+            cursor.execute("DELETE FROM current_sit_in WHERE id_number = ?", (idno,))
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Sessions reset successfully to {new_sessions}'
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error resetting sessions: {str(e)}'
+        })
 
 if __name__ == '__main__':
     app.run(debug=True)

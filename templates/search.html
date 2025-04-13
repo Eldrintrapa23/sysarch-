@@ -217,7 +217,7 @@
         }
 
         .search-box button:hover {
-            background: #2d4432;
+            background: #345239;
             transform: translateY(-2px);
         }
 
@@ -263,6 +263,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            gap: 8px;
         }
 
         /* Make the table header text bold */
@@ -271,9 +272,7 @@
         }
 
         /* Sit-in Button */
-        .sit-in-btn {
-            background: #E9772B;
-            color: white;
+        .sit-in-btn, .reset-session-btn {
             padding: 8px 15px;
             border: none;
             border-radius: 6px;
@@ -282,7 +281,26 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            margin: 0 auto; /* Center the button */
+            font-size: 0.9em;
+            color: white;
+        }
+
+        .sit-in-btn {
+            background: #41644A;
+        }
+
+        .sit-in-btn:hover {
+            background: #345239;
+            transform: translateY(-2px);
+        }
+
+        .reset-session-btn {
+            background: #E9772B;
+        }
+
+        .reset-session-btn:hover {
+            background: #d66a24;
+            transform: translateY(-2px);
         }
 
         /* Modal */
@@ -509,8 +527,8 @@
     </div>
 
     <div class="container">
-        <form method="POST" action="{{ url_for('search') }}" class="search-box">
-            <input type="text" name="search_query" placeholder="Search by ID, Name, or Username">
+        <form method="POST" action="{{ url_for('search') }}" class="search-box" id="searchForm">
+            <input type="text" name="search_query" id="searchInput" placeholder="Search by ID, Name, or Username" value="{{ request.form.get('search_query', '') }}">
             <button type="submit">
                 <i class="fas fa-search"></i>
                 Search
@@ -548,6 +566,10 @@
                                 <button class="sit-in-btn" onclick="openModal('{{ student[0] }}', '{{ student[1] }}', '{{ student[2] }}')">
                                     <i class="fas fa-chair"></i>
                                     Sit In
+                                </button>
+                                <button class="reset-session-btn" onclick="resetStudentSessions('{{ student[0] }}', '{{ student[1] }}', '{{ student[2] }}')">
+                                    <i class="fas fa-undo"></i>
+                                    Reset
                                 </button>
                             </div>
                         </td>
@@ -667,6 +689,30 @@
                 }
             })
             .catch(error => console.error('Error:', error));
+        }
+
+        function resetStudentSessions(idNumber, lastName, firstName) {
+            if (confirm(`Are you sure you want to reset sessions for ${firstName} ${lastName}?`)) {
+                fetch('/reset_student_sessions/' + idNumber, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while resetting sessions');
+                });
+            }
         }
     </script>
 </body>
