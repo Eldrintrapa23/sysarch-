@@ -446,7 +446,13 @@
                         <td>{{ record[1] }}</td>
                         <td>{{ record[2] }}</td>
                         <td>{{ record[3] }}</td>
-                        <td>{{ record[4] }}</td>
+                        <td>
+                            {% if record[4] in ["Java", "C", "ASP.NET", "PHP", "Database", "Capstone", "Computer Application", "Digital Logic", "Embedded System", "System Integration", "IT Trends", "Project Management", "Technopreneurship"] %}
+                                {{ record[4] }}
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </td>
                         <td>{{ record[5] }}</td>
                         <td>{{ record[6] }}</td>
                         <td>{{ record[7] }}</td>
