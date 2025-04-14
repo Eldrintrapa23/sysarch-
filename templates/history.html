@@ -97,32 +97,46 @@
             color: white;
             border: none;
             padding: 8px 16px;
-            border-radius: 6px;
+            border-radius: 25px;
             cursor: pointer;
             font-size: 0.9em;
             transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            min-width: 180px;
+            justify-content: center;
+            font-weight: 500;
         }
 
         .feedback-btn:hover {
             background: #2d4432;
-            transform: translateY(-2px);
-        }
-
-        .feedback-btn:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-            transform: none;
         }
 
         .feedback-btn.submitted {
-            background: #28a745;
+            background: #28a745 !important;
+            color: white;
+            cursor: not-allowed;
+            pointer-events: none;
+            font-weight: 500;
+            min-width: 180px;
+            justify-content: center;
+            display: inline-flex;
+            align-items: center;
+            border-radius: 25px;
+            padding: 8px 24px;
         }
 
-        .feedback-btn.submitted:hover {
-            background: #218838;
+        .feedback-btn:disabled {
+            background: #28a745 !important;
+            color: white;
+            cursor: not-allowed;
+            opacity: 1;
+            font-weight: 500;
+        }
+
+        .feedback-btn i {
+            font-size: 1em;
         }
 
         /* Modal Styles */
@@ -278,15 +292,14 @@
                     <td>{{ record[3] or 'Ongoing' }}</td>
                     <td>{{ record[4] }}</td>
                     <td>
-                        {% if record[5] == 0 %}
+                        {% if record[5] == 1 %}
+                            <button class="feedback-btn submitted" disabled>
+                                Feedback Submitted
+                            </button>
+                        {% else %}
                             <button class="feedback-btn" onclick="openFeedbackModal('{{ record[0] }}', '{{ record[4] }}')">
                                 <i class="fas fa-comment"></i>
                                 Submit Feedback
-                            </button>
-                        {% else %}
-                            <button class="feedback-btn submitted" disabled>
-                                <i class="fas fa-check"></i>
-                                Feedback Submitted
                             </button>
                         {% endif %}
                     </td>
@@ -351,18 +364,25 @@
             let selectedLab = document.getElementById('selected-lab').value;
             let selectedDate = document.getElementById('selected-date').value;
             let messageElement = document.getElementById("feedback-message");
+            let submitButton = document.getElementById("submit-feedback");
     
-            // Check if feedback is empty
+            // Disable submit button immediately
+            submitButton.disabled = true;
+            submitButton.innerHTML = 'Submitting...';
+    
             if (!feedbackText.trim()) {
                 messageElement.innerText = "Feedback cannot be empty!";
                 messageElement.className = "error";
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Submit Feedback';
                 return;
             }
     
-            // Send feedback via fetch API
             fetch("{{ url_for('sit_history') }}", {
                 method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                headers: { 
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
                 body: new URLSearchParams({ 
                     "feedback": feedbackText,
                     "lab": selectedLab,
@@ -371,32 +391,44 @@
             })
             .then(response => response.json())
             .then(data => {
-                messageElement.innerText = data.message;
-                messageElement.className = data.status === "success" ? "success" : "error";
-    
                 if (data.status === "success") {
-                    // Update the feedback button for this session
+                    // Find and update the button in the table
                     const buttons = document.querySelectorAll('.feedback-btn');
                     buttons.forEach(button => {
-                        if (button.getAttribute('onclick') === `openFeedbackModal('${selectedLab}', '${selectedDate}')`) {
+                        if (button.getAttribute('onclick') && 
+                            button.getAttribute('onclick').includes(selectedLab) && 
+                            button.getAttribute('onclick').includes(selectedDate)) {
+                            // Update button to submitted state
                             button.disabled = true;
-                            button.innerHTML = '<i class="fas fa-check"></i> Feedback Submitted';
+                            button.innerHTML = 'Feedback Submitted';
                             button.classList.add('submitted');
+                            button.removeAttribute('onclick');
                         }
                     });
+
+                    // Show success message
+                    messageElement.innerText = "Feedback submitted successfully!";
+                    messageElement.className = "success";
                     
-                    // Close modal after 2 seconds
+                    // Close modal after a short delay
                     setTimeout(() => {
                         closeFeedbackModal();
-                    }, 2000);
+                    }, 1000);
+                } else {
+                    messageElement.innerText = data.message || "Error submitting feedback";
+                    messageElement.className = "error";
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = 'Submit Feedback';
                 }
             })
             .catch(error => {
                 console.error("Error:", error);
                 messageElement.innerText = "An error occurred while submitting feedback.";
                 messageElement.className = "error";
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Submit Feedback';
             });
         });
     </script>
 </body>
-</html> 
+</html>

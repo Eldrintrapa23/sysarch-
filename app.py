@@ -58,6 +58,17 @@ def init_db():
         cursor.execute('ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 0')
         conn.commit()
 
+    # Add feedback_submitted column to sit_in_records if it doesn't exist
+    try:
+        cursor.execute('''
+            ALTER TABLE sit_in_records 
+            ADD COLUMN feedback_submitted INTEGER DEFAULT 0
+        ''')
+        conn.commit()
+    except sqlite3.OperationalError:
+        # Column already exists
+        pass
+
     # Create feedback table if it doesn't exist
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS feedback (
@@ -65,7 +76,7 @@ def init_db():
             id_number TEXT NOT NULL,
             lab TEXT NOT NULL,
             feedback_text TEXT NOT NULL,
-            submitted_on DATETIME NOT NULL,
+            submitted_on TEXT NOT NULL,
             status TEXT DEFAULT 'pending',
             FOREIGN KEY (id_number) REFERENCES users(idno)
         )
@@ -81,6 +92,7 @@ def init_db():
             login_time TEXT NOT NULL,
             logout_time TEXT,
             date TEXT NOT NULL,
+            feedback_submitted INTEGER DEFAULT 0,
             FOREIGN KEY (id_number) REFERENCES users(idno)
         )
     ''')
@@ -381,24 +393,6 @@ def sit_history():
     
     id_number = user[0]
 
-    # Fetch student sit-in history with feedback status
-    cursor.execute("""
-        SELECT 
-            s.lab, 
-            s.purpose, 
-            s.login_time, 
-            s.logout_time, 
-            s.date,
-            CASE WHEN f.id IS NOT NULL THEN 1 ELSE 0 END as has_feedback
-        FROM sit_in_records s
-        LEFT JOIN feedback f ON s.id_number = f.id_number 
-            AND s.lab = f.lab 
-            AND s.date = DATE(f.submitted_on)
-        WHERE s.id_number = ?
-        ORDER BY s.date DESC, s.login_time DESC
-    """, (id_number,))
-    history = cursor.fetchall()
-
     # Handle feedback submission
     if request.method == 'POST':
         feedback_text = request.form.get('feedback')
@@ -411,37 +405,64 @@ def sit_history():
                 'message': 'All fields are required!'
             })
 
-        # Check if feedback already exists for this session
-        cursor.execute("""
-            SELECT id FROM feedback 
-            WHERE id_number = ? AND lab = ? AND DATE(submitted_on) = ?
-        """, (id_number, lab, date))
-        
-        if cursor.fetchone():
-            return jsonify({
-                'status': 'error',
-                'message': 'You have already submitted feedback for this session.'
-            })
-
-        # Insert new feedback
         try:
+            # Check if feedback already exists
             cursor.execute("""
-                INSERT INTO feedback (id_number, lab, feedback_text, submitted_on, status) 
-                VALUES (?, ?, ?, datetime('now'), 'pending')
-            """, (id_number, lab, feedback_text))
+                SELECT id FROM feedback 
+                WHERE id_number = ? AND lab = ? AND DATE(submitted_on) = DATE(?)
+            """, (id_number, lab, date))
+            
+            if cursor.fetchone():
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Feedback already submitted for this session.'
+                })
+
+            # Insert new feedback with status completed
+            cursor.execute("""
+                INSERT INTO feedback 
+                (id_number, lab, feedback_text, submitted_on, status) 
+                VALUES (?, ?, ?, ?, 'completed')
+            """, (id_number, lab, feedback_text, date))
+            
+            # Update the sit_in_records table to mark feedback as submitted
+            cursor.execute("""
+                UPDATE sit_in_records 
+                SET feedback_submitted = 1 
+                WHERE id_number = ? AND lab = ? AND DATE(date) = DATE(?)
+            """, (id_number, lab, date))
+            
             conn.commit()
             
             return jsonify({
                 'status': 'success',
-                'message': 'Thank you! Your feedback has been submitted successfully.'
+                'message': 'Feedback submitted successfully!'
             })
+            
         except Exception as e:
+            conn.rollback()
             return jsonify({
                 'status': 'error',
                 'message': f'Error submitting feedback: {str(e)}'
             })
 
+    # For GET request - fetch history with feedback status
+    cursor.execute("""
+        SELECT 
+            s.lab, 
+            s.purpose, 
+            s.login_time, 
+            s.logout_time, 
+            s.date,
+            COALESCE(s.feedback_submitted, 0) as has_feedback
+        FROM sit_in_records s
+        WHERE s.id_number = ?
+        ORDER BY s.date DESC, s.login_time DESC
+    """, (id_number,))
+    
+    history = cursor.fetchall()
     conn.close()
+    
     return render_template('history.html', history=history)
 
 @app.route('/admin/feedbacks')
@@ -1724,4 +1745,3 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 
- 
