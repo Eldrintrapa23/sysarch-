@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Schedule</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .page-title {
+            color: #41644A;
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .page-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: #E9772B;
+            border-radius: 3px;
+        }
+
+        .schedule-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        .schedule-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .schedule-grid th, .schedule-grid td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: center;
+            min-width: 150px;
+        }
+
+        .schedule-grid th {
+            background-color: #41644A;
+            color: white;
+            font-weight: 600;
+        }
+
+        .schedule-grid td {
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+
+        .time-slot {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #41644A;
+        }
+
+        .occupied {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .occupied:hover {
+            background-color: #c8e6c9;
+            transform: scale(1.02);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #E9772B;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .back-btn:hover {
+            background: #d66a24;
+            transform: translateY(-2px);
+        }
+
+        .back-btn i {
+            font-size: 0.9em;
+        }
+
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #41644A;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-available {
+            background: white;
+            border: 1px solid #ddd;
+        }
+
+        .legend-occupied {
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+        }
+
+        @media (max-width: 768px) {
+            .schedule-grid th, .schedule-grid td {
+                padding: 10px;
+                font-size: 14px;
+                min-width: 120px;
+            }
+
+            .legend {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="page-title">Lab Schedule</h1>
+
+        <div class="schedule-container">
+            <a href="{{ url_for('student_dashboard') }}" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+            <table class="schedule-grid">
+                <tr>
+                    <th>Time</th>
+                    {% for day in days %}
+                    <th>{{ day }}</th>
+                    {% endfor %}
+                </tr>
+                {% for time in time_slots %}
+                <tr>
+                    <td class="time-slot">{{ time }}</td>
+                    {% for day in days %}
+                    <td {% if schedule_grid[day][time] %} class="occupied" {% endif %}>
+                        {% if schedule_grid[day][time] %}
+                            Lab {{ schedule_grid[day][time] }}
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+
+        
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

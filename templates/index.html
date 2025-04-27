@@ -130,14 +130,7 @@
         }
 
         .register-btn {
-            background: #E9772B;
-            color: white;
-        }
-
-        .register-btn:hover {
-            background: #d66a24;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(233, 119, 43, 0.3);
+            display: none;
         }
 
         .flash-container {
@@ -202,6 +195,25 @@
                 right: 5%;
             }
         }
+
+        .account-text {
+            margin-top: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .register-link {
+            color: #E9772B;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .register-link:hover {
+            color: #d66a24;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -218,8 +230,8 @@
             </div>
 
             <button type="submit" class="btn login-btn">Login</button>
-            <button type="button" class="btn register-btn" onclick="redirectToRegister()">Register</button>
         </form>
+        <p class="account-text">Don't have an account? <a href="{{ url_for('register') }}" class="register-link">Register</a></p>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -235,10 +247,6 @@
     {% endwith %}
 
     <script>
-        function redirectToRegister() {
-            window.location.href = "{{ url_for('register') }}";
-        }
-
         // Auto-hide flash messages
         setTimeout(() => {
             const flashMessages = document.querySelectorAll('.flash-box');

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file
 import sqlite3
 import bcrypt  # For password hashing
 import os
@@ -18,6 +18,17 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Configure resource upload
+RESOURCE_UPLOAD_FOLDER = os.path.join('static', 'resources')
+ALLOWED_RESOURCE_EXTENSIONS = {'pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'zip'}
+app.config['RESOURCE_UPLOAD_FOLDER'] = RESOURCE_UPLOAD_FOLDER
+
+# Create resource upload directory if it doesn't exist
+os.makedirs(RESOURCE_UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_resource_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_RESOURCE_EXTENSIONS
 
 # Custom datetime filter
 @app.template_filter('datetime')
@@ -51,108 +62,32 @@ def init_db():
         )
     ''')
 
-    # Add points column if it doesn't exist
-    try:
-        cursor.execute('SELECT points FROM users LIMIT 1')
-    except sqlite3.OperationalError:
-        cursor.execute('ALTER TABLE users ADD COLUMN points INTEGER DEFAULT 0')
-        conn.commit()
-
-    # Add feedback_submitted column to sit_in_records if it doesn't exist
-    try:
-        cursor.execute('''
-            ALTER TABLE sit_in_records 
-            ADD COLUMN feedback_submitted INTEGER DEFAULT 0
-        ''')
-        conn.commit()
-    except sqlite3.OperationalError:
-        # Column already exists
-        pass
-
-    # Create feedback table if it doesn't exist
+    # Create lab_schedules table if it doesn't exist
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS feedback (
+        CREATE TABLE IF NOT EXISTS lab_schedules (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_number TEXT NOT NULL,
-            lab TEXT NOT NULL,
-            feedback_text TEXT NOT NULL,
-            submitted_on TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            FOREIGN KEY (id_number) REFERENCES users(idno)
+            day TEXT NOT NULL,
+            time_slot TEXT NOT NULL,
+            room TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
-    # Create sit_in_records table if it doesn't exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS sit_in_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_number TEXT NOT NULL,
-            purpose TEXT NOT NULL,
-            lab TEXT NOT NULL,
-            login_time TEXT NOT NULL,
-            logout_time TEXT,
-            date TEXT NOT NULL,
-            feedback_submitted INTEGER DEFAULT 0,
-            FOREIGN KEY (id_number) REFERENCES users(idno)
-        )
-    ''')
-
-    # Create current_sit_in table if it doesn't exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS current_sit_in (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_number TEXT NOT NULL,
-            purpose TEXT NOT NULL,
-            lab TEXT NOT NULL,
-            login_time TEXT NOT NULL,
-            session TEXT NOT NULL,
-            date TEXT NOT NULL,
-            status TEXT DEFAULT 'active',
-            FOREIGN KEY (id_number) REFERENCES users(idno)
-        )
-    ''')
-
-    # Create announcements table if it doesn't exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS announcements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
-            admin TEXT NOT NULL,
-            message TEXT NOT NULL,
-            date_posted DATETIME NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Create reservation table if it doesn't exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS reservation (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            date TEXT NOT NULL,
-            time TEXT NOT NULL,
-            purpose TEXT NOT NULL,
-            year TEXT NOT NULL,
-            course TEXT NOT NULL,
-            lab TEXT NOT NULL,
-            name TEXT NOT NULL,
-            id_number TEXT NOT NULL,
-            status TEXT DEFAULT 'pending',
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    ''')
-
-    # Create lab_resources table if it doesn't exist
+    # Create lab_resources table if it doesn't exist (removed DROP TABLE)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS lab_resources (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            type TEXT NOT NULL,
+            category TEXT NOT NULL,
             description TEXT,
+            needs_internet BOOLEAN DEFAULT 0,
+            external_link TEXT,
+            file_path TEXT,
+            icon TEXT DEFAULT 'file-alt',
             status TEXT DEFAULT 'available',
-            icon TEXT DEFAULT 'desktop',
-            is_enabled BOOLEAN DEFAULT 1,
+            added_by TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_by TEXT
         )
@@ -262,8 +197,17 @@ def student_dashboard():
 
     with sqlite3.connect('users.db') as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT idno, lastname, firstname, middlename, course, year_level, email_address, profile_pic FROM users WHERE id = ?", (user_id,))
+        cursor.execute("""
+            SELECT idno, lastname, firstname, middlename, course, year_level, 
+                   email_address, profile_pic, remaining_sessions, points 
+            FROM users 
+            WHERE id = ?
+        """, (user_id,))
         user = cursor.fetchone()
+
+        if not user:
+            flash("User not found!", "danger")
+            return redirect(url_for('login'))
 
     return render_template('student.html', user=user)
 
@@ -1253,16 +1197,21 @@ def add_points(idno):
         conn = sqlite3.connect('users.db')
         cursor = conn.cursor()
         
-        # Get current points
-        cursor.execute("SELECT points FROM users WHERE idno = ?", (idno,))
-        current_points = cursor.fetchone()[0] or 0
+        # Get current points and remaining sessions
+        cursor.execute("SELECT points, remaining_sessions FROM users WHERE idno = ?", (idno,))
+        result = cursor.fetchone()
+        if not result:
+            return jsonify({'success': False, 'message': 'Student not found'})
+            
+        current_points = result[0] or 0
+        current_sessions = result[1] or 0
         
         # Add 1 point
         new_points = current_points + 1
         
         # Check if points are divisible by 3 to add a session
         if new_points % 3 == 0:
-            # Add 1 session but keep the points
+            # Add 1 session and update points
             cursor.execute("""
                 UPDATE users 
                 SET points = ?, 
@@ -1277,7 +1226,8 @@ def add_points(idno):
                 SET points = ? 
                 WHERE idno = ?
             """, (new_points, idno))
-            message = f"Point added! Current points: {new_points}. {3 - (new_points % 3)} more points until next session!"
+            points_needed = 3 - (new_points % 3)
+            message = f"Point added! Current points: {new_points}. {points_needed} more points until next session!"
         
         conn.commit()
         conn.close()
@@ -1392,30 +1342,90 @@ def lab_resources():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT name, type, description, status, icon, last_updated
+        SELECT id, name, category, description, needs_internet, 
+               external_link, file_path, icon, status
         FROM lab_resources
-        WHERE is_enabled = 1
-        ORDER BY name
+        WHERE status = 'available'
+        ORDER BY category, name
     """)
     
-    resources = [
-        {
-            'name': row[0],
-            'type': row[1],
-            'description': row[2],
-            'status': row[3],
-            'icon': row[4] or 'desktop',  # Use default icon if none specified
-            'last_updated': row[5]
-        }
-        for row in cursor.fetchall()
-    ]
+    resources = []
+    for row in cursor.fetchall():
+        icon = {
+            'Programming': 'code',
+            'Office': 'file-word',
+            'Documentation': 'book',
+            'Tutorial': 'video',
+            'Software': 'desktop',
+            'Exercise': 'tasks'
+        }.get(row[2], 'file-alt')
+        
+        resources.append({
+            'id': row[0],
+            'name': row[1],
+            'category': row[2],
+            'description': row[3],
+            'needs_internet': bool(row[4]),
+            'external_link': row[5],
+            'file_path': row[6],
+            'icon': icon,
+            'status': row[8]
+        })
     
     conn.close()
-    return render_template('', resources=resources)
+    return render_template('lab_resources.html', resources=resources)
 
 @app.route('/lab_schedule')
 def lab_schedule():
-    return render_template('lab_schedule.html')
+    try:
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # Define time slots and days (matching admin view)
+        time_slots = [
+            '7:30 AM - 9:00 AM',
+            '9:00 AM - 10:30 AM',
+            '10:30 AM - 12:00 PM',
+            '1:00 PM - 2:30 PM',
+            '2:30 PM - 4:00 PM',
+            '4:00 PM - 5:30 PM'
+        ]
+        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        
+        # Initialize empty schedule grid
+        schedule_grid = {day: {time: None for time in time_slots} for day in days}
+        
+        # Fetch all schedules
+        cursor.execute("""
+            SELECT day, time_slot, room 
+            FROM lab_schedules 
+            ORDER BY 
+                CASE day 
+                    WHEN 'Monday' THEN 1 
+                    WHEN 'Tuesday' THEN 2 
+                    WHEN 'Wednesday' THEN 3 
+                    WHEN 'Thursday' THEN 4 
+                    WHEN 'Friday' THEN 5 
+                END,
+                time_slot
+        """)
+        schedules = cursor.fetchall()
+        conn.close()
+        
+        # Fill schedule grid with room numbers
+        for day, time, room in schedules:
+            if day in schedule_grid and time in schedule_grid[day]:
+                schedule_grid[day][time] = room
+        
+        return render_template('lab_schedule.html', 
+                             schedule_grid=schedule_grid,
+                             days=days,
+                             time_slots=time_slots)
+                             
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        return f'Error loading schedules: {str(e)}'
 
 @app.route('/admin_resources')
 def admin_resources():
@@ -1427,28 +1437,34 @@ def admin_resources():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT id, name, type, description, status, icon, is_enabled, 
-               last_updated, updated_by
+        SELECT id, name, category, description, needs_internet, 
+               external_link, file_path, icon, status, added_by,
+               created_at, last_updated, updated_by
         FROM lab_resources
-        ORDER BY name
+        ORDER BY category, name
     """)
+    
     resources = [
         {
             'id': row[0],
             'name': row[1],
-            'type': row[2],
+            'category': row[2],
             'description': row[3],
-            'status': row[4],
-            'icon': row[5] or 'desktop',  # default icon if none specified
-            'is_enabled': bool(row[6]),
-            'last_updated': row[7],
-            'updated_by': row[8]
+            'needs_internet': bool(row[4]),
+            'external_link': row[5],
+            'file_path': row[6],
+            'icon': row[7],
+            'status': row[8],
+            'added_by': row[9] or 'Admin',  # Provide default value if NULL
+            'created_at': row[10],
+            'last_updated': row[11],
+            'updated_by': row[12] or 'Admin'  # Provide default value if NULL
         }
         for row in cursor.fetchall()
     ]
     
     conn.close()
-    return render_template('', resources=resources)
+    return render_template('admin_resources.html', resources=resources)
 
 @app.route('/api/resources', methods=['POST'])
 def create_resource():
@@ -1456,34 +1472,48 @@ def create_resource():
         return jsonify({'success': False, 'message': 'Admin access required'})
     
     try:
-        data = request.json
+        name = request.form.get('name')
+        category = request.form.get('category')
+        description = request.form.get('description')
+        needs_internet = request.form.get('needs_internet') == 'true'
+        external_link = request.form.get('external_link')
         
-        # Validate required fields
-        required_fields = ['name', 'type', 'status']
-        for field in required_fields:
-            if not data.get(field):
+        # Handle file upload for offline resources
+        file_path = None
+        if not needs_internet and 'resource_file' in request.files:
+            file = request.files['resource_file']
+            if file and file.filename and allowed_resource_file(file.filename):
+                filename = secure_filename(file.filename)
+                file_path = os.path.join(app.config['RESOURCE_UPLOAD_FOLDER'], filename)
+                file.save(file_path)
+            elif file.filename:
                 return jsonify({
                     'success': False,
-                    'message': f'{field} is required'
+                    'message': f'Invalid file type. Allowed types are: {", ".join(ALLOWED_RESOURCE_EXTENSIONS)}'
                 })
+        
+        # Set appropriate icon based on category
+        icon = {
+            'Programming': 'code',
+            'Office': 'file-word',
+            'Documentation': 'book',
+            'Tutorial': 'video',
+            'Software': 'desktop',
+            'Exercise': 'tasks'
+        }.get(category, 'file-alt')
         
         conn = sqlite3.connect('users.db')
         cursor = conn.cursor()
         
         cursor.execute("""
             INSERT INTO lab_resources (
-                name, type, description, status, icon, 
-                is_enabled, updated_by
+                name, category, description, needs_internet, 
+                external_link, file_path, icon, status, added_by, 
+                created_at, last_updated, updated_by
             )
-            VALUES (?, ?, ?, ?, ?, 1, ?)
-        """, (
-            data['name'],
-            data['type'],
-            data.get('description', ''),
-            data['status'],
-            data.get('icon', 'desktop'),
-            session['admin_username']
-        ))
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'available', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+        """, (name, category, description, needs_internet, external_link, file_path, 
+              icon, session['admin_username'], session['admin_username']))
         
         conn.commit()
         conn.close()
@@ -1495,6 +1525,30 @@ def create_resource():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/download_resource/<int:id>')
+def download_resource(id):
+    try:
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT file_path, name FROM lab_resources WHERE id = ?", (id,))
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result and result[0]:
+            return send_file(
+                result[0],
+                as_attachment=True,
+                download_name=os.path.basename(result[0])
+            )
+        else:
+            flash('Resource file not found', 'error')
+            return redirect(url_for('lab_resources'))
+            
+    except Exception as e:
+        flash(f'Error downloading resource: {str(e)}', 'error')
+        return redirect(url_for('lab_resources'))
+
 @app.route('/api/resources/<int:id>', methods=['GET'])
 def get_resource(id):
     if 'admin_username' not in session:
@@ -1505,7 +1559,8 @@ def get_resource(id):
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT id, name, type, description, status, is_enabled
+            SELECT id, name, category, description, needs_internet, 
+                   external_link, file_path, icon, status
             FROM lab_resources
             WHERE id = ?
         """, (id,))
@@ -1515,10 +1570,13 @@ def get_resource(id):
             resource = {
                 'id': row[0],
                 'name': row[1],
-                'type': row[2],
+                'category': row[2],
                 'description': row[3],
-                'status': row[4],
-                'is_enabled': bool(row[5])
+                'needs_internet': bool(row[4]),
+                'external_link': row[5],
+                'file_path': row[6],
+                'icon': row[7],
+                'status': row[8]
             }
             return jsonify({'success': True, 'resource': resource})
         else:
@@ -1539,15 +1597,19 @@ def update_resource(id):
         
         cursor.execute("""
             UPDATE lab_resources 
-            SET name = ?, type = ?, description = ?, status = ?, icon = ?,
+            SET name = ?, category = ?, description = ?, needs_internet = ?, 
+                external_link = ?, file_path = ?, icon = ?, status = ?,
                 last_updated = CURRENT_TIMESTAMP, updated_by = ?
             WHERE id = ?
         """, (
             data['name'],
-            data['type'],
+            data['category'],
             data['description'],
+            data['needs_internet'],
+            data['external_link'],
+            data['file_path'],
+            data['icon'],
             data['status'],
-            data.get('icon', 'desktop'),  # Use default icon if not provided
             session['admin_username'],
             id
         ))
@@ -1599,7 +1661,7 @@ def get_resource_types():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT DISTINCT type 
+        SELECT DISTINCT category 
         FROM lab_resources 
         WHERE is_enabled = 1
     """)
@@ -1615,19 +1677,23 @@ def filter_resources(type):
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT name, type, description, status, icon
+        SELECT name, category, description, needs_internet, 
+               external_link, file_path, icon, status
         FROM lab_resources
-        WHERE is_enabled = 1 AND type = ?
+        WHERE is_enabled = 1 AND category = ?
         ORDER BY name
     """, (type,))
     
     resources = [
         {
             'name': row[0],
-            'type': row[1],
+            'category': row[1],
             'description': row[2],
-            'status': row[3],
-            'icon': row[4] or 'desktop'
+            'needs_internet': bool(row[3]),
+            'external_link': row[4],
+            'file_path': row[5],
+            'icon': row[6],
+            'status': row[7]
         }
         for row in cursor.fetchall()
     ]
@@ -1643,20 +1709,24 @@ def search_resources():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT name, type, description, status, icon
+        SELECT name, category, description, needs_internet, 
+               external_link, file_path, icon, status
         FROM lab_resources
         WHERE is_enabled = 1 
-        AND (name LIKE ? OR description LIKE ? OR type LIKE ?)
+        AND (name LIKE ? OR description LIKE ? OR category LIKE ?)
         ORDER BY name
     """, (f'%{query}%', f'%{query}%', f'%{query}%'))
     
     resources = [
         {
             'name': row[0],
-            'type': row[1],
+            'category': row[1],
             'description': row[2],
-            'status': row[3],
-            'icon': row[4] or 'desktop'
+            'needs_internet': bool(row[3]),
+            'external_link': row[4],
+            'file_path': row[5],
+            'icon': row[6],
+            'status': row[7]
         }
         for row in cursor.fetchall()
     ]
@@ -1739,6 +1809,236 @@ def reset_student_sessions(idno):
         return jsonify({
             'success': False,
             'message': f'Error resetting sessions: {str(e)}'
+        })
+
+@app.route('/adminlabschedule')
+def adminlabschedule():
+    if 'admin_username' not in session:
+        flash("Admin access required!", "danger")
+        return redirect(url_for('admin_login'))
+        
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    
+    # Get all schedules ordered by day and time
+    cursor.execute("""
+        SELECT day, time_slot, room 
+        FROM lab_schedules 
+        ORDER BY 
+            CASE day 
+                WHEN 'Monday' THEN 1 
+                WHEN 'Tuesday' THEN 2 
+                WHEN 'Wednesday' THEN 3 
+                WHEN 'Thursday' THEN 4 
+                WHEN 'Friday' THEN 5 
+            END,
+            time_slot
+    """)
+    all_schedules = cursor.fetchall()
+    
+    # Create a list of schedules for each day
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    time_slots = [
+        '7:30 AM - 9:00 AM',
+        '9:00 AM - 10:30 AM',
+        '10:30 AM - 12:00 PM',
+        '1:00 PM - 2:30 PM',
+        '2:30 PM - 4:00 PM',
+        '4:00 PM - 5:30 PM'
+    ]
+    
+    # Initialize the schedules structure
+    schedules = []
+    for _ in range(5):  # 5 days
+        day_schedule = []
+        for _ in range(6):  # 6 time slots
+            day_schedule.append(None)
+        schedules.append(day_schedule)
+    
+    # Fill in the schedules
+    for schedule in all_schedules:
+        day, time_slot, room = schedule
+        try:
+            day_index = days.index(day)
+            time_index = time_slots.index(time_slot)
+            schedules[day_index][time_index] = {
+                'room': room,
+                'day': day,
+                'time_slot': time_slot
+            }
+        except ValueError:
+            continue  # Skip invalid day or time slot
+    
+    conn.close()
+    return render_template('adminlabschedule.html', 
+                         schedules=schedules,
+                         days=days,
+                         time_slots=time_slots)
+
+@app.route('/get_schedules')
+def get_schedules():
+    try:
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT day, time_slot, room 
+            FROM lab_schedules 
+            ORDER BY 
+                CASE day 
+                    WHEN 'Monday' THEN 1 
+                    WHEN 'Tuesday' THEN 2 
+                    WHEN 'Wednesday' THEN 3 
+                    WHEN 'Thursday' THEN 4 
+                    WHEN 'Friday' THEN 5 
+                END,
+                time_slot
+        """)
+        schedules = cursor.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'schedules': [{'day': s[0], 'time_slot': s[1], 'room': s[2]} for s in schedules]
+        })
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        })
+
+@app.route('/add_schedule', methods=['POST'])
+def add_schedule():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        # Get form data
+        day = request.form.get('day')
+        time = request.form.get('time')
+        room = request.form.get('room')
+        
+        if not all([day, time, room]):
+            return jsonify({
+                'success': False,
+                'message': 'All fields (day, time, and room) are required'
+            })
+            
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # Check if this time slot is already occupied
+        cursor.execute("""
+            SELECT room 
+            FROM lab_schedules 
+            WHERE day = ? AND time_slot = ?
+        """, (day, time))
+        
+        existing = cursor.fetchone()
+        if existing:
+            conn.close()
+            return jsonify({
+                'success': False,
+                'message': f'This time slot is already occupied by Lab {existing[0]}'
+            })
+        
+        # Add the new schedule with timestamp
+        cursor.execute("""
+            INSERT INTO lab_schedules (day, time_slot, room, created_at, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        """, (day, time, room))
+        
+        conn.commit()
+        
+        # Get all schedules after adding new one
+        cursor.execute("""
+            SELECT day, time_slot, room 
+            FROM lab_schedules 
+            ORDER BY 
+                CASE day 
+                    WHEN 'Monday' THEN 1 
+                    WHEN 'Tuesday' THEN 2 
+                    WHEN 'Wednesday' THEN 3 
+                    WHEN 'Thursday' THEN 4 
+                    WHEN 'Friday' THEN 5 
+                END,
+                time_slot
+        """)
+        schedules = cursor.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Schedule for Lab {room} added successfully',
+            'schedules': [{'day': s[0], 'time_slot': s[1], 'room': s[2]} for s in schedules]
+        })
+        
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        return jsonify({
+            'success': False,
+            'message': f'Error adding schedule: {str(e)}'
+        })
+
+@app.route('/delete_schedule', methods=['POST'])
+def delete_schedule():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        # Get form data
+        day = request.form.get('day')
+        time = request.form.get('time')
+        
+        if not all([day, time]):
+            return jsonify({
+                'success': False,
+                'message': 'Day and time are required'
+            })
+            
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # Delete the schedule
+        cursor.execute("""
+            DELETE FROM lab_schedules 
+            WHERE day = ? AND time_slot = ?
+        """, (day, time))
+        
+        conn.commit()
+        
+        # Get remaining schedules
+        cursor.execute("""
+            SELECT day, time_slot, room 
+            FROM lab_schedules 
+            ORDER BY 
+                CASE day 
+                    WHEN 'Monday' THEN 1 
+                    WHEN 'Tuesday' THEN 2 
+                    WHEN 'Wednesday' THEN 3 
+                    WHEN 'Thursday' THEN 4 
+                    WHEN 'Friday' THEN 5 
+                END,
+                time_slot
+        """)
+        schedules = cursor.fetchall()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Schedule deleted successfully',
+            'schedules': [{'day': s[0], 'time_slot': s[1], 'room': s[2]} for s in schedules]
+        })
+        
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        return jsonify({
+            'success': False,
+            'message': f'Error deleting schedule: {str(e)}'
         })
 
 if __name__ == '__main__':

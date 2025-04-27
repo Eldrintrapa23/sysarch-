@@ -110,6 +110,52 @@
             border-bottom: 3px solid #E9772B;
         }
 
+        .points-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .points-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .points-box, .sessions-box {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 0 10px;
+        }
+
+        .points-box h3, .sessions-box h3 {
+            color: #41644A;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .points-box p, .sessions-box p {
+            color: #E9772B;
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        .bonus-message {
+            text-align: center;
+            color: #41644A;
+            font-weight: 500;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(65, 100, 74, 0.1);
+            border-radius: 8px;
+        }
+
         .image-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -245,10 +291,6 @@
                 <i class="fas fa-clock"></i>
                 <span>Lab Schedule</span>
             </a>
-            <a href="{{ url_for('sessions') }}">
-                <i class="fas fa-calendar-alt"></i>
-                <span>Remaining Sessions</span>
-            </a>
             <a href="{{ url_for('sit_history') }}">
                 <i class="fas fa-history"></i>
                 <span>Sit-in History</span>
@@ -266,6 +308,25 @@
 
     <div class="content">
         <div class="header">STUDENT DASHBOARD</div>
+        
+        <div class="points-section">
+            <div class="points-info">
+                <div class="points-box">
+                    <h3>Your Points</h3>
+                    <p>{{ user[9] or 0 }}</p>
+                </div>
+                <div class="sessions-box">
+                    <h3>Remaining Sessions</h3>
+                    <p>{{ user[8] or 0 }}</p>
+                </div>
+            </div>
+            {% if user[9] and user[9] % 3 == 0 %}
+            <div class="bonus-message">
+                Congratulations! You've earned a bonus session for reaching {{ user[9] }} points!
+            </div>
+            {% endif %}
+        </div>
+
         <div class="image-container">
             <div class="container">
                 <img src="{{ url_for('static', filename='images/lab1.jpg') }}" alt="Modern Computer Lab">
