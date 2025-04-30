@@ -62,7 +62,83 @@ def init_db():
         )
     ''')
 
-    # Create lab_schedules table if it doesn't exist
+    # Create current_sit_in table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS current_sit_in (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_number TEXT NOT NULL,
+            purpose TEXT NOT NULL,
+            lab TEXT NOT NULL,
+            pc_number INTEGER NOT NULL DEFAULT 1,
+            session TEXT,
+            date TEXT NOT NULL,
+            status TEXT DEFAULT 'Ongoing',
+            login_time TEXT NOT NULL
+        )
+    ''')
+
+    # Create sit_in_records table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sit_in_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_number TEXT NOT NULL,
+            purpose TEXT NOT NULL,
+            lab TEXT NOT NULL,
+            pc_number INTEGER NOT NULL DEFAULT 1,
+            login_time TEXT NOT NULL,
+            logout_time TEXT,
+            date TEXT NOT NULL,
+            feedback_submitted INTEGER DEFAULT 0
+        )
+    ''')
+
+    # Migrate existing tables to add pc_number if it doesn't exist
+    try:
+        # Check if pc_number exists in current_sit_in
+        cursor.execute("SELECT pc_number FROM current_sit_in LIMIT 1")
+    except sqlite3.OperationalError:
+        # Add pc_number column to current_sit_in
+        cursor.execute("ALTER TABLE current_sit_in ADD COLUMN pc_number INTEGER NOT NULL DEFAULT 1")
+        
+    try:
+        # Check if pc_number exists in sit_in_records
+        cursor.execute("SELECT pc_number FROM sit_in_records LIMIT 1")
+    except sqlite3.OperationalError:
+        # Add pc_number column to sit_in_records
+        cursor.execute("ALTER TABLE sit_in_records ADD COLUMN pc_number INTEGER NOT NULL DEFAULT 1")
+
+    # Create reservations table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reservations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            id_number TEXT NOT NULL,
+            student_name TEXT NOT NULL,
+            date TEXT NOT NULL,
+            time TEXT NOT NULL,
+            purpose TEXT NOT NULL,
+            lab TEXT NOT NULL,
+            pc_number INTEGER NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+
+    # Create pc_status table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS pc_status (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lab TEXT NOT NULL,
+            pc_number INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            time TEXT NOT NULL,
+            status TEXT NOT NULL,
+            UNIQUE(lab, pc_number, date, time)
+        )
+    ''')
+
+    # Create other existing tables...
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS lab_schedules (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -74,7 +150,7 @@ def init_db():
         )
     ''')
 
-    # Create lab_resources table if it doesn't exist (removed DROP TABLE)
+    # Create lab_resources table if it doesn't exist
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS lab_resources (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,16 +169,10 @@ def init_db():
         )
     ''')
 
-    # Add icon column if it doesn't exist
-    try:
-        cursor.execute('SELECT icon FROM lab_resources LIMIT 1')
-    except sqlite3.OperationalError:
-        cursor.execute('ALTER TABLE lab_resources ADD COLUMN icon TEXT DEFAULT "desktop"')
-        conn.commit()
-
     conn.commit()
     conn.close()
-    
+
+# Initialize the database when the application starts
 init_db()
 
 # Home route (Dashboard or Welcome page)
@@ -458,30 +528,33 @@ def reserve():
         flash("Please log in first!", "danger")
         return redirect(url_for('login'))
 
-    reservations = []  # Store all reservations
+    today = datetime.now().strftime('%Y-%m-%d')
+    reservations = []
 
     with sqlite3.connect('users.db') as conn:
         cursor = conn.cursor()
         
         # Fetch user information
         cursor.execute("""
-            SELECT idno, lastname, firstname
+            SELECT idno, lastname, firstname, course, remaining_sessions
             FROM users 
             WHERE id = ?
         """, (session['user_id'],))
-        user = cursor.fetchone()
+        user_data = cursor.fetchone()
         
-        if user:
+        if user_data:
             user = {
-                'idno': user[0],
-                'lastname': user[1],
-                'firstname': user[2]
+                'idno': user_data[0],
+                'lastname': user_data[1],
+                'firstname': user_data[2],
+                'course': user_data[3],
+                'remaining_sessions': user_data[4]
             }
         
         # Fetch ALL reservations of the student
         cursor.execute("""
-            SELECT date, time, purpose, year, course, lab, name, id_number, status 
-            FROM reservation 
+            SELECT date, time, purpose, lab, pc_number, status, id 
+            FROM reservations 
             WHERE user_id = ? 
             ORDER BY id DESC
         """, (session['user_id'],))
@@ -491,23 +564,45 @@ def reserve():
             date = request.form['date']
             time = request.form['time']
             purpose = request.form['purpose']
-            year = request.form['year']
-            course = request.form['course']
             lab = request.form['lab']
-            name = request.form['name']  # This will now come from hidden field
-            id_number = request.form['id_number']  # This will now come from hidden field
+            pc_number = request.form['pc_number']
+            
+            # Check if PC is already reserved for the same date and time
+            cursor.execute("""
+                SELECT id FROM reservations 
+                WHERE date = ? AND time = ? AND lab = ? AND pc_number = ? 
+                AND status != 'rejected'
+            """, (date, time, lab, pc_number))
+            
+            existing_reservation = cursor.fetchone()
+            
+            if existing_reservation:
+                flash("This PC is already reserved for the selected date and time!", "danger")
+                return redirect(url_for('reserve'))
 
             # Insert new reservation
             cursor.execute("""
-                INSERT INTO reservation (user_id, date, time, purpose, year, course, lab, name, id_number, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (session['user_id'], date, time, purpose, year, course, lab, name, id_number, 'pending'))
+                INSERT INTO reservations (
+                    user_id, id_number, student_name, date, time, 
+                    purpose, lab, pc_number, status
+                ) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                session['user_id'],
+                user['idno'],
+                user['lastname'] + ', ' + user['firstname'],
+                date, time, purpose, lab, pc_number,
+                'pending'
+            ))
             conn.commit()
 
-            flash("Reservation successful!", "success")
-            return redirect(url_for('reserve'))  # Reload the page to show updated reservations
+            flash("Reservation submitted successfully! Waiting for admin approval.", "success")
+            return redirect(url_for('reserve'))
 
-    return render_template('reserve.html', reservations=reservations, user=user)
+    return render_template('reserve.html', 
+                         reservations=reservations, 
+                         user=user,
+                         today=today)
 
 @app.route('/sessions')
 def sessions():
@@ -686,10 +781,11 @@ def sit_in():
     first_name = data.get("first_name")
     purpose = data.get("purpose")
     sit_lab = data.get("lab")
+    pc_number = data.get("pc_number")
     date = datetime.now().strftime("%Y-%m-%d")
     login_time = datetime.now().strftime('%H:%M:%S')
 
-    if not (id_number and first_name and last_name and purpose and sit_lab):
+    if not all([id_number, first_name, last_name, purpose, sit_lab, pc_number]):
         return jsonify({"status": "error", "message": "All fields are required"})
 
     try:
@@ -710,6 +806,20 @@ def sit_in():
                 "message": f"You are already in an active sit-in session in Lab {active_session[1]} since {active_session[2]}. Please end your current session before starting a new one."
             })
 
+        # Check if PC is already in use
+        cursor.execute("""
+            SELECT id_number 
+            FROM current_sit_in 
+            WHERE lab = ? AND pc_number = ? AND status = 'Ongoing'
+        """, (sit_lab, pc_number))
+        pc_in_use = cursor.fetchone()
+        
+        if pc_in_use:
+            return jsonify({
+                "status": "error",
+                "message": f"PC {pc_number} in Lab {sit_lab} is currently in use"
+            })
+
         # Check if user exists and has remaining sessions
         cursor.execute("SELECT firstname, remaining_sessions FROM users WHERE IDNO = ?", (id_number,))
         user = cursor.fetchone()
@@ -727,9 +837,9 @@ def sit_in():
         remaining_sessions = cursor.fetchone()[0]
 
         cursor.execute("""
-            INSERT INTO current_sit_in (id_number, purpose, lab, session, date, status, login_time)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (id_number, purpose, sit_lab, str(remaining_sessions), date, "Ongoing", login_time))
+            INSERT INTO current_sit_in (id_number, purpose, lab, pc_number, session, date, status, login_time)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (id_number, purpose, sit_lab, pc_number, str(remaining_sessions), date, "Ongoing", login_time))
 
         conn.commit()
         conn.close()
@@ -749,7 +859,7 @@ def current_sit_in():
     cursor = conn.cursor()
     
     cursor.execute("""
-        SELECT c.id, c.id_number, c.purpose, c.lab, 
+        SELECT c.id, c.id_number, c.purpose, c.lab, c.pc_number,
                CASE 
                    WHEN u.remaining_sessions IS NULL THEN '0'
                    ELSE u.remaining_sessions 
@@ -1077,29 +1187,53 @@ def update_feedback_status():
 
 @app.route('/reservation')
 def reservation():
+    if 'admin_username' not in session:
+        flash("Admin access required!", "danger")
+        return redirect(url_for('admin_login'))
+
     with sqlite3.connect('users.db') as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT r.id_number, 
-                   u.lastname || ' ' || u.firstname as full_name,
-                   r.date, r.time, r.purpose, r.year, r.course, r.lab, r.status 
-            FROM reservation r
-            JOIN users u ON r.id_number = u.idno
+            SELECT id, id_number, student_name, date, time, 
+                   purpose, lab, pc_number, status 
+            FROM reservations
+            ORDER BY date DESC, time DESC
         """)
         reservations = cursor.fetchall()
     
     return render_template('adminreserve.html', reservations=reservations)
 
-# ✅ Fixed: Added @ before app.route
 @app.route('/update_reservation/<int:res_id>/<string:action>', methods=['POST'])
 def update_reservation(res_id, action):
+    if 'admin_username' not in session:
+        flash("Admin access required!", "danger")
+        return redirect(url_for('admin_login'))
+
     new_status = 'approved' if action == 'approve' else 'rejected'
     
     with sqlite3.connect('users.db') as conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE reservation SET status = ? WHERE id_number = ?", 
-                       (new_status, res_id))
+        cursor.execute("UPDATE reservations SET status = ? WHERE id = ?", 
+                      (new_status, res_id))
         conn.commit()
+
+        if new_status == 'approved':
+            # Get the reservation details to update PC status
+            cursor.execute("""
+                SELECT lab, pc_number, date, time
+                FROM reservations
+                WHERE id = ?
+            """, (res_id,))
+            reservation = cursor.fetchone()
+            
+            if reservation:
+                # Update PC status in the pc_status table
+                cursor.execute("""
+                    INSERT OR REPLACE INTO pc_status 
+                    (lab, pc_number, date, time, status)
+                    VALUES (?, ?, ?, ?, 'reserved')
+                """, reservation)
+                conn.commit()
 
     flash(f"Reservation {new_status}!", "success")
     return redirect(url_for('reservation'))
@@ -1624,6 +1758,39 @@ def update_resource(id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+@app.route('/api/resources/<int:id>', methods=['DELETE'])
+def delete_resource(id):
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # First get the file path if it exists
+        cursor.execute("SELECT file_path FROM lab_resources WHERE id = ?", (id,))
+        result = cursor.fetchone()
+        
+        if result and result[0]:
+            # Delete the file from the filesystem
+            try:
+                os.remove(result[0])
+            except Exception as e:
+                print(f"Error deleting file: {str(e)}")
+        
+        # Delete the resource from the database
+        cursor.execute("DELETE FROM lab_resources WHERE id = ?", (id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Resource deleted successfully'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 @app.route('/api/resources/toggle', methods=['POST'])
 def toggle_resource():
     if 'admin_username' not in session:
@@ -2039,6 +2206,132 @@ def delete_schedule():
         return jsonify({
             'success': False,
             'message': f'Error deleting schedule: {str(e)}'
+        })
+
+@app.route('/computer_control')
+def computer_control():
+    return render_template('computer_control.html')
+
+@app.route('/get_current_sit_in_status')
+def get_current_sit_in_status():
+    try:
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # Get all PCs currently in use with student details
+        cursor.execute("""
+            SELECT c.lab, c.pc_number, c.id_number, c.purpose, u.firstname, u.lastname
+            FROM current_sit_in c
+            LEFT JOIN users u ON c.id_number = u.idno
+            WHERE c.status = 'Ongoing'
+        """)
+        
+        in_use_pcs = cursor.fetchall()
+        pc_status = [{
+            'lab': pc[0],
+            'pc_number': pc[1],
+            'student_id': pc[2],
+            'purpose': pc[3],
+            'student_name': f"{pc[4]} {pc[5]}" if pc[4] and pc[5] else "Unknown"
+        } for pc in in_use_pcs]
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'pc_status': pc_status
+        })
+        
+    except Exception as e:
+        print(f"Error getting sit-in status: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        })
+
+@app.route('/check_pc_availability', methods=['POST'])
+def check_pc_availability():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Please log in first'})
+    
+    try:
+        data = request.json
+        lab = data.get('lab')
+        date = data.get('date')
+        time = data.get('time')
+        
+        print(f"Checking PC availability for Lab: {lab}, Date: {date}, Time: {time}")
+        
+        if not all([lab, date, time]):
+            return jsonify({
+                'success': False,
+                'message': 'Missing required parameters'
+            })
+            
+        with sqlite3.connect('users.db') as conn:
+            cursor = conn.cursor()
+            
+            # Get all reserved PCs for the given lab, date, and time
+            cursor.execute("""
+                SELECT pc_number 
+                FROM reservations 
+                WHERE lab = ? AND date = ? AND time = ? 
+                AND status != 'rejected'
+            """, (lab, date, time))
+            
+            reserved_pcs = [row[0] for row in cursor.fetchall()]
+            
+            # Get all PCs currently in use from current_sit_in
+            cursor.execute("""
+                SELECT pc_number, id_number, purpose 
+                FROM current_sit_in 
+                WHERE lab = ? AND status = 'Ongoing'
+            """, (lab,))
+            
+            in_use_pcs = cursor.fetchall()
+            
+            # Create availability status for all PCs (1-50)
+            pc_status = {}
+            for i in range(1, 51):
+                status = 'available'
+                details = None
+                
+                # Check if PC is reserved
+                if i in reserved_pcs:
+                    status = 'reserved'
+                
+                # Check if PC is in current sit-in
+                for pc in in_use_pcs:
+                    if i == pc[0]:
+                        status = 'in-use'
+                        # Get student details
+                        cursor.execute("""
+                            SELECT firstname, lastname 
+                            FROM users 
+                            WHERE idno = ?
+                        """, (pc[1],))
+                        student = cursor.fetchone()
+                        details = {
+                            'student_id': pc[1],
+                            'student_name': f"{student[0]} {student[1]}" if student else "Unknown",
+                            'purpose': pc[2]
+                        }
+                
+                pc_status[str(i)] = {
+                    'status': status,
+                    'details': details
+                }
+            
+            return jsonify({
+                'success': True,
+                'pc_status': pc_status
+            })
+            
+    except Exception as e:
+        print(f"Error checking PC availability: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
         })
 
 if __name__ == '__main__':

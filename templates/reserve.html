@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lab Reservation</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -126,6 +127,55 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(65, 100, 74, 0.3);
         }
+
+        .remaining-sessions {
+            background: rgba(65, 100, 74, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            color: #41644A;
+        }
+
+        .sessions-info, .points-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 0;
+        }
+
+        .sessions-details, .points-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sessions-count, .points-count {
+            font-size: 2em;
+            font-weight: 700;
+            color: #41644A;
+        }
+
+        .sessions-label, .points-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .sessions-note, .points-note {
+            font-size: 0.8em;
+            color: #E9772B;
+            margin-top: 2px;
+        }
+
+        .remaining-sessions i {
+            font-size: 2em;
+            color: #E9772B;
+        }
+
+        .points-info {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(65, 100, 74, 0.1);
+        }
+
         .status-section {
             background: #ffffff;
             padding: 30px;
@@ -134,6 +184,7 @@
             max-height: 600px;
             overflow-y: auto;
         }
+
         .status-item {
             background: rgba(65, 100, 74, 0.05);
             padding: 15px 20px;
@@ -141,14 +192,17 @@
             margin-bottom: 10px;
             transition: transform 0.3s ease;
         }
+
         .status-item:hover {
             transform: translateX(5px);
             background: rgba(65, 100, 74, 0.1);
         }
+
         .status-item strong {
             color: #41644A;
             font-weight: 600;
         }
+
         .status-pending {
             color: #E9772B;
             font-weight: 600;
@@ -157,94 +211,189 @@
             border-radius: 8px;
             display: inline-block;
         }
-        .content {
-            padding: 20px;
-        }
-        .header {
-            font-size: 32px;
-            font-weight: bold;
-            border-bottom: 1px solid #d1c23b;
-            padding-bottom: 10px;
-        }
-        .container.status-section {
-            max-height: 400px; /* Adjust height as needed */
-            overflow-y: auto;  /* Enable vertical scrolling */
-            padding-right: 10px; /* Optional: add space for scrollbar */
-        }
-        
 
+        .readonly-field {
+            background-color: #f8f9fa !important;
+            cursor: not-allowed;
+        }
+
+        .pc-selection {
+            margin-top: 20px;
+            background: rgba(65, 100, 74, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #41644A;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #E9772B;
+        }
+
+        .status-legend {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .computers-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            padding: 20px;
+            background: rgba(65, 100, 74, 0.05);
+            border-radius: 12px;
+        }
+
+        .computer-card {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .computer-card.available {
+            background: #41644A;
+        }
+
+        .computer-card.in-use {
+            background: #E9772B;
+            cursor: not-allowed;
+        }
+
+        .computer-card:hover:not(.in-use) {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .computer-card.selected {
+            outline: 3px solid #E9772B;
+            outline-offset: 2px;
+            transform: scale(1.1);
+        }
+
+        .pc-number {
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .status-icon {
+            font-size: 0.8em;
+            margin-top: 2px;
+        }
+
+        .status-tooltip {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .computer-card:hover .status-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 </head>
 <body>
 
 <div class="container-wrapper">
-
     <!-- Reservation Form -->
     <div class="container">
         <div class="header">Lab Reservation</div>
-        <form action="{{ url_for('reserve') }}" method="POST">
-            <!-- Hidden fields for student info -->
-            <input type="hidden" id="name" name="name" value="{{ user.lastname + ' ' + user.firstname }}">
-            <input type="hidden" id="id_number" name="id_number" value="{{ user.idno }}">
 
+        <!-- Remaining Sessions Display -->
+        <div class="remaining-sessions">
+            <div class="sessions-info">
+                <i class="fas fa-clock"></i>
+                <div class="sessions-details">
+                    <span class="sessions-count">{{ user.remaining_sessions }}</span>
+                    <span class="sessions-label">Remaining Sessions</span>
+                    {% if user.course == 'BSIT' %}
+                        <span class="sessions-note">(Max: 30 sessions)</span>
+                    {% else %}
+                        <span class="sessions-note">(Max: 15 sessions)</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if user.points %}
+                <div class="points-info">
+                    <i class="fas fa-star"></i>
+                    <div class="points-details">
+                        <span class="points-count">{{ user.points }}</span>
+                        <span class="points-label">Points</span>
+                        {% if user.points % 3 != 0 %}
+                            <span class="points-note">({{ 3 - (user.points % 3) }} more points for bonus session)</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <form action="{{ url_for('reserve') }}" method="POST">
             <div class="form-group">
-                <label for="date">Select Date</label>
-                <input type="date" id="date" name="date" required>
+                <label for="id_number">ID Number</label>
+                <input type="text" id="id_number" name="id_number" value="{{ user.idno }}" class="readonly-field" readonly>
             </div>
 
             <div class="form-group">
-                <label for="time">Select Time</label>
-                <input type="time" id="time" name="time" required>
+                <label for="student_name">Student Name</label>
+                <input type="text" id="student_name" name="student_name" 
+                       value="{{ user.lastname + ', ' + user.firstname }}" class="readonly-field" readonly>
             </div>
 
             <div class="form-group">
                 <label for="purpose">Purpose</label>
                 <select id="purpose" name="purpose" required>
                     <option value="">-- Choose a Purpose --</option>
-                    <option value="Java">Java</option>
-                    <option value="C++">C++</option>
-                    <option value="C">C</option>
-                    <option value="Python">Python</option>
+                    <option value="Java">Java Programming</option>
+                    <option value="C++">C++ Programming</option>
+                    <option value="C">C Programming</option>
+                    <option value="Python">Python Programming</option>
                     <option value="ASP.NET">ASP.NET</option>
-                    <option value="PHP">PHP</option>
+                    <option value="PHP">PHP Programming</option>
                     <option value="Research">Research</option>
                     <option value="Study">Study</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="year">Year Level</label>
-                <select id="year" name="year" required>
-                    <option value="">Select Year Level</option>
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                    <option value="5th Year">5th Year</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="course">Course</label>
-                <select id="course" name="course" required>
-                    <option value="">Select Course</option>
-                    <option value="BSIT">BS Information Technology</option>
-                    <option value="BSCS">BS Computer Science</option>
-                    <option value="BSIS">BS Information Systems</option>
-                    <option value="BSECE">BS Electronics Engineering</option>
-                    <option value="BSME">BS Mechanical Engineering</option>
-                    <option value="BEED">Bachelor of Elementary Education</option>
-                    <option value="BSBA">Business Administration</option>
-                    <option value="BSA">BS Accounting</option>
-                    <option value="BSN">BS Nursing</option>
-                    <option value="BSCE">BS Civil Engineering</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="lab">Select Lab Room</label>
-                <select id="lab" name="lab" required>
-                    <option value="">-- Choose a Room --</option>
+                <label for="lab">Laboratory</label>
+                <select id="lab" name="lab" required onchange="updatePCAvailability()">
+                    <option value="">-- Choose a Laboratory --</option>
                     <option value="Room 524">Room 524</option>
                     <option value="Room 544">Room 544</option>
                     <option value="Room 542">Room 542</option>
@@ -254,50 +403,225 @@
                 </select>
             </div>
 
+            <!-- PC Selection Section -->
+            <div class="form-group pc-selection" id="pcSelection">
+                <div class="section-header">
+                    <i class="fas fa-desktop"></i>
+                    Select Computer
+                </div>
+
+                <!-- Status Legend -->
+                <div class="status-legend">
+                    <span class="status-badge" style="background: #41644A; color: white;">
+                        <i class="fas fa-check"></i> Available
+                    </span>
+                    <span class="status-badge" style="background: #E9772B; color: white;">
+                        <i class="fas fa-user"></i> In Use
+                    </span>
+                </div>
+
+                <div class="computers-container" id="pcGrid">
+                    <!-- PCs will be populated dynamically -->
+                </div>
+                <input type="hidden" name="pc_number" id="pc_number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="time">Time In</label>
+                <input type="time" id="time" name="time" required>
+            </div>
+
+            <div class="form-group">
+                <label for="date">Date</label>
+                <input type="date" id="date" name="date" required min="{{ today }}" required>
+            </div>
+
             <div class="button-group">
-                <a href="{{ url_for('student_dashboard') }}" class="button back-button">Back to Dashboard</a>
-                <button type="submit" class="button submit-button">Reserve</button>
+                <a href="{{ url_for('student_dashboard') }}" class="button back-button">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <button type="submit" class="button submit-button">
+                    <i class="fas fa-calendar-check"></i> Reserve
+                </button>
             </div>
         </form>
     </div>
 
-<!-- Status Section -->
-<div class="container status-section">
-    <div class="header">Reservation Status</div>
-    {% if reservations %}
-        {% for reservation in reservations %}
-            <div class="status-item">
-                <strong>Status:</strong>
-                {% if reservation[8] == 'approved' %}
-                    <span style="color: green; font-weight: bold;">{{ reservation[8] }}</span>
-                {% elif reservation[8] == 'rejected' %}
-                    <span style="color: red; font-weight: bold;">{{ reservation[8] }}</span>
-                {% else %}
-                    <span class="status-pending">{{ reservation[8] }}</span>
-                {% endif %}
-            </div>
-            <div class="status-item">
-                <strong>Date:</strong> {{ reservation[0] }}
-            </div>
-            <div class="status-item">
-                <strong>Time:</strong> {{ reservation[1] }}
-            </div>
-            <div class="status-item">
-                <strong>Lab Room:</strong> {{ reservation[5] }}
-            </div>
-            <div class="status-item">
-                <strong>Purpose:</strong> {{ reservation[2] }}
-            </div>
-            <hr style="border-top: 1px solid #ccc;">
-        {% endfor %}
-    {% else %}
-        <p>No reservation found.</p>
-    {% endif %}
+    <!-- Status Section -->
+    <div class="container status-section">
+        <div class="header">Reservation Status</div>
+        {% if reservations %}
+            {% for reservation in reservations %}
+                <div class="status-item">
+                    <strong>Status:</strong>
+                    {% if reservation[8] == 'approved' %}
+                        <span style="color: green; font-weight: bold;">{{ reservation[8] }}</span>
+                    {% elif reservation[8] == 'rejected' %}
+                        <span style="color: red; font-weight: bold;">{{ reservation[8] }}</span>
+                    {% else %}
+                        <span class="status-pending">{{ reservation[8] }}</span>
+                    {% endif %}
+                </div>
+                <div class="status-item">
+                    <strong>Date:</strong> {{ reservation[0] }}
+                </div>
+                <div class="status-item">
+                    <strong>Time:</strong> {{ reservation[1] }}
+                </div>
+                <div class="status-item">
+                    <strong>Lab Room:</strong> {{ reservation[5] }}
+                </div>
+                <div class="status-item">
+                    <strong>Purpose:</strong> {{ reservation[2] }}
+                </div>
+                <hr style="border-top: 1px solid #ccc; margin: 15px 0;">
+            {% endfor %}
+        {% else %}
+            <p>No reservations found.</p>
+        {% endif %}
+    </div>
 </div>
 
+<script>
+function updatePCAvailability() {
+    const lab = document.getElementById('lab').value;
+    const date = document.getElementById('date').value;
+    const time = document.getElementById('time').value;
+    const pcSelection = document.getElementById('pcSelection');
+    
+    console.log('Updating PC availability with:', { lab, date, time });
+    
+    // Show/hide PC selection based on whether lab is selected
+    pcSelection.style.display = lab ? 'block' : 'none';
+    
+    if (lab) {
+        // First, get current sit-in status
+        fetch('/get_current_sit_in_status')
+            .then(response => response.json())
+            .then(sitInData => {
+                // Then check reservation availability
+                if (date && time) {
+                    return fetch('/check_pc_availability', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            lab: lab,
+                            date: date,
+                            time: time
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(reservationData => {
+                        return {
+                            sitInData: sitInData,
+                            reservationData: reservationData
+                        };
+                    });
+                }
+                return {
+                    sitInData: sitInData,
+                    reservationData: null
+                };
+            })
+            .then(data => {
+                console.log('Received PC status data:', data);
+                if (data.sitInData.success) {
+                    const pcStatus = {};
+                    // Initialize all PCs as available
+                    for (let i = 1; i <= 50; i++) {
+                        pcStatus[i] = 'available';
+                    }
+                    
+                    // Mark PCs that are in current sit-in as in-use
+                    data.sitInData.pc_status.forEach(pc => {
+                        if (pc.lab === lab) {
+                            pcStatus[pc.pc_number] = 'in-use';
+                        }
+                    });
+                    
+                    // If we have reservation data, also mark reserved PCs as in-use
+                    if (data.reservationData && data.reservationData.success) {
+                        Object.entries(data.reservationData.pc_status).forEach(([pc, status]) => {
+                            if (status === 'in-use') {
+                                pcStatus[pc] = 'in-use';
+                            }
+                        });
+                    }
+                    
+                    displayPCGrid(pcStatus);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+}
 
+function displayPCGrid(pcStatus) {
+    const pcGrid = document.getElementById('pcGrid');
+    pcGrid.innerHTML = '';
+    
+    console.log('Displaying PC grid with status:', pcStatus);
+    
+    for (let i = 1; i <= 50; i++) {
+        const pcDiv = document.createElement('div');
+        const isAvailable = pcStatus[i] === 'available';
+        
+        pcDiv.className = `computer-card ${isAvailable ? 'available' : 'in-use'}`;
+        pcDiv.innerHTML = `
+            <div class="pc-number">PC ${i}</div>
+            <div class="status-icon">
+                <i class="fas ${isAvailable ? 'fa-check' : 'fa-user'}"></i>
+            </div>
+            <div class="status-tooltip">
+                ${isAvailable ? 'Available' : 'In Use'}
+            </div>
+        `;
+        
+        if (isAvailable) {
+            pcDiv.onclick = function() {
+                document.getElementById('pc_number').value = i;
+                // Remove previous selection
+                const previousSelected = document.querySelector('.computer-card.selected');
+                if (previousSelected) {
+                    previousSelected.classList.remove('selected');
+                }
+                // Add selection to current PC
+                this.classList.add('selected');
+            };
+        } else {
+            pcDiv.title = 'This PC is currently in use';
+        }
+        
+        pcGrid.appendChild(pcDiv);
+    }
+}
 
-</div>
+// Add event listeners for date and time changes
+document.getElementById('date').addEventListener('change', updatePCAvailability);
+document.getElementById('time').addEventListener('change', updatePCAvailability);
+
+// Add form validation to ensure a PC is selected
+document.querySelector('form').onsubmit = function(e) {
+    const selectedPC = document.getElementById('pc_number').value;
+    if (!selectedPC) {
+        alert('Please select a PC');
+        e.preventDefault();
+        return false;
+    }
+    return true;
+};
+
+// Initial check for PC availability
+window.addEventListener('load', function() {
+    const lab = document.getElementById('lab').value;
+    if (lab) {
+        updatePCAvailability();
+    }
+});
+</script>
 
 </body>
 </html>

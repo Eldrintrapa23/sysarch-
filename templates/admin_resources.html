@@ -397,6 +397,7 @@
             <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
             <li><a href="{{ url_for('admin_resources') }}" class="active"><i class="fas fa-book"></i> Lab Resources</a></li>
             <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-clock"></i> Lab Schedule</a></li>
+            <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>
         </ul>
         <div class="logout-container">
             <a href="{{ url_for('logout') }}" class="logout-btn">
@@ -575,9 +576,45 @@
             const id = formData.get('id');
             const url = id ? `/api/resources/${id}` : '/api/resources';
             
+            // For POST requests (adding new resource), use FormData directly
+            if (!id) {
+                fetch(url, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while adding the resource');
+                });
+                return;
+            }
+            
+            // For PUT requests (editing existing resource), convert to JSON
+            const data = {
+                name: formData.get('name'),
+                category: formData.get('category'),
+                description: formData.get('description'),
+                needs_internet: formData.get('needs_internet') === 'true',
+                external_link: formData.get('external_link'),
+                file_path: formData.get('file_path'),
+                icon: formData.get('icon') || 'file-alt',
+                status: 'available'
+            };
+            
             fetch(url, {
-                method: id ? 'PUT' : 'POST',
-                body: formData
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
             })
             .then(response => response.json())
             .then(data => {
@@ -586,6 +623,10 @@
                 } else {
                     alert(data.message);
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the resource');
             });
         }
 

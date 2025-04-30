@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Computer Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: #41644A;
+            padding: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: 70px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: white;
+            padding: 0 25px;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            height: 100%;
+            padding: 0;
+            flex-grow: 1;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .nav-links li {
+            height: 100%;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0 15px;
+            font-size: 0.9em;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            position: relative;
+            gap: 5px;
+        }
+
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: #E9772B;
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .logout-container {
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: #E9772B;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logout-btn:hover {
+            background: #d66a24;
+            transform: translateY(-2px);
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #41644A;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #E9772B;
+        }
+
+        .filter-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-select {
+            border: 2px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-select:focus {
+            border-color: #41644A;
+            box-shadow: none;
+        }
+
+        .status-legend {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        .lab-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .lab-title {
+            color: #41644A;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #E9772B;
+        }
+
+        .computer-card {
+            width: 60px;
+            height: 60px;
+            margin: 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .computer-card.available {
+            background: #41644A;
+            color: white;
+        }
+
+        .computer-card.in-use {
+            background: #E9772B;
+            color: white;
+        }
+
+        .computer-card:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 992px) {
+            .navbar {
+                height: auto;
+                padding: 10px;
+                flex-direction: column;
+            }
+
+            .logo {
+                padding: 15px;
+                width: 100%;
+                justify-content: center;
+                background: none;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                padding: 10px 0;
+                gap: 8px;
+            }
+
+            .nav-links li {
+                height: 40px;
+            }
+
+            .nav-links a {
+                padding: 0 15px;
+                border-radius: 20px;
+            }
+
+            .nav-links a::after {
+                display: none;
+            }
+
+            .logout-container {
+                width: 100%;
+                justify-content: center;
+                padding: 10px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div class="navbar">
+        <div class="logo">Computer Control</div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="{{ url_for('search') }}"><i class="fas fa-search"></i> Search</a></li>
+            <li><a href="{{ url_for('students') }}"><i class="fas fa-users"></i> Students</a></li>
+            <li><a href="{{ url_for('current_sit_in') }}"><i class="fas fa-chair"></i> Sit-in</a></li>
+            <li><a href="{{ url_for('sit_in_records') }}"><i class="fas fa-history"></i> Records</a></li>
+            <li><a href="{{ url_for('sit_in_report') }}"><i class="fas fa-chart-bar"></i> Reports</a></li>
+            <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
+            <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
+            <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-laptop-code"></i> Lab Resources</a></li>
+            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-laptop-code"></i> adminlabschedule</a></li>
+            <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>
+        </ul>
+        <div class="logout-container">
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Status Badges -->
+        <div class="section mb-4">
+            <div class="d-flex gap-3">
+                <div class="status-badge" style="background: #41644A; color: white; font-size: 1.1em; padding: 10px 20px; border-radius: 8px;">
+                    <i class="fas fa-check"></i> Available
+                </div>
+                <div class="status-badge" style="background: #E9772B; color: white; font-size: 1.1em; padding: 10px 20px; border-radius: 8px;">
+                    <i class="fas fa-user"></i> In Use
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <i class="fas fa-desktop"></i>
+                Computer Control System
+            </div>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="labFilter" class="form-label">Filter by Lab:</label>
+                        <select id="labFilter" class="form-select">
+                            <option value="all">All Labs</option>
+                            <option value="544">Lab 544</option>
+                            <option value="542">Lab 542</option>
+                            <option value="530">Lab 530</option>
+                            <option value="526">Lab 526</option>
+                            <option value="524">Lab 524</option>
+                            <option value="528">Lab 528</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="statusFilter" class="form-label">Filter by Status:</label>
+                        <select id="statusFilter" class="form-select">
+                            <option value="all">All Status</option>
+                            <option value="available">Available</option>
+                            <option value="in-use">In Use</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Labs Container -->
+            <div id="labsContainer">
+                {% for lab_number in [544, 542, 530, 526, 524, 528] %}
+                <div class="lab-section" data-lab="{{ lab_number }}">
+                    <h3 class="lab-title">Room {{ lab_number }}</h3>
+                    <div class="computers-container">
+                        {% for i in range(1, 51) %}
+                        <div class="computer-card available" data-computer="{{ i }}">
+                            PC {{ i }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Filter functionality
+        document.getElementById('labFilter').addEventListener('change', filterComputers);
+        document.getElementById('statusFilter').addEventListener('change', filterComputers);
+
+        function updatePCStatus() {
+            fetch('/get_current_sit_in_status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reset all PCs to available first
+                        document.querySelectorAll('.computer-card').forEach(card => {
+                            card.classList.remove('in-use');
+                            card.classList.add('available');
+                        });
+
+                        // Mark PCs that are in use based on current sit-ins
+                        data.pc_status.forEach(pc => {
+                            const labSection = document.querySelector(`.lab-section[data-lab="${pc.lab.replace('Room ', '')}"]`);
+                            if (labSection) {
+                                const pcCard = labSection.querySelector(`.computer-card[data-computer="${pc.pc_number}"]`);
+                                if (pcCard) {
+                                    pcCard.classList.remove('available');
+                                    pcCard.classList.add('in-use');
+                                    pcCard.innerHTML = `
+                                        PC ${pc.pc_number}
+                                        <i class="fas fa-user"></i>
+                                    `;
+                                }
+                            }
+                        });
+                    } else {
+                        console.error('Failed to fetch PC status:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // Update PC status initially and every 30 seconds
+        updatePCStatus();
+        setInterval(updatePCStatus, 30000);
+
+        function filterComputers() {
+            const selectedLab = document.getElementById('labFilter').value;
+            const selectedStatus = document.getElementById('statusFilter').value;
+            
+            document.querySelectorAll('.lab-section').forEach(lab => {
+                const labNumber = lab.getAttribute('data-lab');
+                
+                if (selectedLab === 'all' || selectedLab === labNumber) {
+                    lab.style.display = 'block';
+                    
+                    lab.querySelectorAll('.computer-card').forEach(computer => {
+                        const computerStatus = computer.classList.contains('available') ? 'available' : 'in-use';
+                        
+                        if (selectedStatus === 'all' || selectedStatus === computerStatus) {
+                            computer.style.display = 'inline-flex';
+                        } else {
+                            computer.style.display = 'none';
+                        }
+                    });
+                } else {
+                    lab.style.display = 'none';
+                }
+            });
+        }
+
+        // Computer status toggle with confirmation
+        document.querySelectorAll('.computer-card').forEach(card => {
+            card.addEventListener('click', function() {
+                if (this.classList.contains('in-use')) {
+                    alert('This PC is currently in use by a student in sit-in.');
+                    return;
+                }
+                
+                if (confirm('Do you want to toggle this PC\'s status?')) {
+                    this.classList.toggle('available');
+                    this.classList.toggle('in-use');
+                    if (this.classList.contains('in-use')) {
+                        this.innerHTML = `
+                            ${this.textContent}
+                            <i class="fas fa-user"></i>
+                        `;
+                    } else {
+                        this.innerHTML = this.textContent;
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
