@@ -388,13 +388,13 @@
             <li><a href="{{ url_for('search') }}"><i class="fas fa-search"></i> Search</a></li>
             <li><a href="{{ url_for('students') }}"><i class="fas fa-users"></i> Students</a></li>
             <li><a href="{{ url_for('current_sit_in') }}"><i class="fas fa-chair"></i> Sit-in</a></li>
-            <li><a href="{{ url_for('sit_in_records') }}" class="active"><i class="fas fa-history"></i> Records</a></li>
+            <li><a href="{{ url_for('sit_in_records') }}"><i class="fas fa-history"></i> Records</a></li>
             <li><a href="{{ url_for('sit_in_report') }}"><i class="fas fa-chart-bar"></i> Reports</a></li>
             <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
             <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
             <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-laptop-code"></i> Lab Resources</a></li>
-            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-laptop-code"></i> adminlabschedule</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-desktop"></i> Lab Resources</a></li>
+            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-clock"></i> Lab Schedule</a></li>
             <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>
         </ul>
         </ul>
@@ -407,6 +407,9 @@
     </div>
 
     <div class="container">
+        <div style="text-align:center; font-size:1.1em; font-weight:600; color:#41644A; margin-top:20px; margin-bottom:10px;">
+            University of Cebu-Main Campus College of Computer Studies Computer Labratory Sit-in Monitoring System
+        </div>
         <h1 class="page-title">Current Sit-in Records</h1>
 
         <!-- Search Box -->
@@ -559,6 +562,68 @@
                 }
             });
         });
+
+        // Add export to PDF and Excel with university header
+        function exportToPDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                // Add university header - large, bold, centered
+                doc.setFontSize(18);
+                doc.setFont(undefined, 'bold');
+                const header = "University of Cebu-Main Campus College of Computer Studies Computer Labratory Sit-in Monitoring System";
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const textWidth = doc.getTextWidth(header);
+                doc.text(header, (pageWidth - textWidth) / 2, 18);
+                doc.setFontSize(16);
+                doc.setFont(undefined, 'normal');
+                doc.text("Current Sit-in Records", 14, 32);
+                doc.setFontSize(12);
+                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 40);
+                // Get table data
+                const table = document.querySelector('table');
+                const headers = [];
+                const data = [];
+                table.querySelectorAll('th').forEach(th => {
+                    headers.push(th.textContent.trim());
+                });
+                table.querySelectorAll('tbody tr').forEach(tr => {
+                    const row = [];
+                    tr.querySelectorAll('td').forEach(td => {
+                        row.push(td.textContent.trim());
+                    });
+                    data.push(row);
+                });
+                doc.autoTable({
+                    head: [headers],
+                    body: data,
+                    startY: 50,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: [65, 100, 74],
+                        textColor: 255,
+                        fontSize: 10
+                    },
+                    styles: { fontSize: 9 }
+                });
+                doc.save("Current_Sit-in_Records.pdf");
+            } catch (error) {
+                alert('Error generating PDF. Please try again.');
+            }
+        }
+        function exportToExcel() {
+            const table = document.querySelector('table');
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(table);
+            XLSX.utils.sheet_add_aoa(ws, [
+                ['University of Cebu-Main Campus College of Computer Studies Computer Labratory Sit-in Monitoring System'],
+                ['Current Sit-in Records'],
+                [`Generated on: ${new Date().toLocaleDateString()}`],
+                ['']
+            ], { origin: 'A1' });
+            XLSX.utils.book_append_sheet(wb, ws, "Current Sit-in Records");
+            XLSX.writeFile(wb, "Current_Sit-in_Records.xlsx");
+        }
     </script>
 </body>
 </html>

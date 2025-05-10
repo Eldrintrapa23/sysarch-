@@ -336,6 +336,45 @@
                 flex-direction: column;
             }
         }
+
+        /* Notification styles */
+        .notification-badge {
+            background: #E9772B;
+            color: white;
+            border-radius: 50%;
+            padding: 3px 8px;
+            font-size: 0.8em;
+            margin-left: 6px;
+            vertical-align: top;
+        }
+        
+        .notification-alert {
+            background: rgba(233, 119, 43, 0.1);
+            border-left: 4px solid #E9772B;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: pulse 2s infinite;
+        }
+        
+        .notification-alert i {
+            color: #E9772B;
+            font-size: 1.5em;
+        }
+        
+        .notification-alert p {
+            color: #333;
+            font-weight: 500;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(233, 119, 43, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(233, 119, 43, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(233, 119, 43, 0); }
+        }
     </style>
 </head>
 <body>
@@ -350,10 +389,15 @@
             <li><a href="{{ url_for('sit_in_records') }}"><i class="fas fa-history"></i> Records</a></li>
             <li><a href="{{ url_for('sit_in_report') }}"><i class="fas fa-chart-bar"></i> Reports</a></li>
             <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
-            <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
+            <li><a href="{{ url_for('reservation') }}">
+                <i class="fas fa-calendar-alt"></i> Reservation
+                {% if pending_count > 0 %}
+                    <span class="notification-badge">{{ pending_count }}</span>
+                {% endif %}
+            </a></li>
             <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-laptop-code"></i> Lab Resources</a></li>
-            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-laptop-code"></i> adminlabschedule</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-desktop"></i> Lab Resources</a></li>
+            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-clock"></i> Lab Schedule</a></li>
             <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>
         </ul>
         <div class="logout-container">
@@ -365,6 +409,13 @@
     </div>
 
     <div class="container">
+        {% if pending_count > 0 %}
+        <div class="notification-alert">
+            <i class="fas fa-bell"></i>
+            <p>You have {{ pending_count }} pending reservation{{ 's' if pending_count != 1 else '' }} that need{{ 's' if pending_count == 1 else '' }} your attention!</p>
+        </div>
+        {% endif %}
+        
         <div class="table-container">
             <div class="header">
                 <h1><i class="fas fa-calendar-check"></i> Manage Reservations</h1>
@@ -425,6 +476,36 @@
             </table>
         </div>
     </div>
+
+    <!-- Add notification sound -->
+    {% if pending_count > 0 %}
+    <audio id="notificationSound" style="display: none;">
+        <source src="{{ url_for('static', filename='notification.mp3') }}" type="audio/mpeg">
+        <!-- Fallback for browsers that don't support MP3 -->
+        <source src="{{ url_for('static', filename='notification.ogg') }}" type="audio/ogg">
+    </audio>
+    
+    <script>
+        // Play notification sound when page loads
+        window.addEventListener('load', function() {
+            const sound = document.getElementById('notificationSound');
+            if (sound) {
+                // Try to play the sound
+                const playPromise = sound.play();
+                
+                // Handle playback restrictions
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        // Playback started successfully
+                    })
+                    .catch(error => {
+                        console.log("Auto-play was prevented. This is normal in many browsers that require user interaction before playing audio.");
+                    });
+                }
+            }
+        });
+    </script>
+    {% endif %}
 
     <script>
         document.getElementById('searchInput').addEventListener('keyup', function() {

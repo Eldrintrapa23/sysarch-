@@ -777,8 +777,8 @@
             <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
             <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
             <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-laptop-code"></i> Lab Resources</a></li>
-            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-laptop-code"></i> adminlabschedule</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-desktop"></i> Lab Resources</a></li>
+            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-clock"></i> Lab Schedule</a></li>
             <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>
         </ul>
         </ul>
@@ -794,6 +794,9 @@
     <div id="status-message"></div>
 
     <div class="container">
+        <div style="text-align:center; font-size:1.1em; font-weight:600; color:#41644A; margin-top:20px; margin-bottom:10px;">
+            University of Cebu-Main Campus College of Computer Studies Computer Labratory Sit-in Monitoring System
+        </div>
         <h1 class="page-title">Generate Reports</h1>
 
         <!-- Filters Section -->
@@ -971,22 +974,31 @@
         // Initialize pagination when the page loads
         document.addEventListener('DOMContentLoaded', initializePagination);
 
-        // Update exportToPDF to include filter information
+        // Update exportToPDF to include university header
         function exportToPDF() {
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                const filters = getFilterInfo();
-                
-                // Add title and filter information
+                // Main header: bold, all-caps, centered
                 doc.setFontSize(16);
-                doc.text("Sit-in Reports", 14, 15);
-                doc.setFontSize(12);
-                
-                let y = 25;
+                doc.setFont(undefined, 'bold');
+                const header1 = "UNIVERSITY OF CEBU-MAIN CAMPUS";
+                const header2 = "COLLEGE OF COMPUTER STUDIES";
+                const header3 = "COMPUTER LABORATORY SIT-IN MONITORING SYSTEM";
+                const pageWidth = doc.internal.pageSize.getWidth();
+                doc.text(header1, pageWidth / 2, 18, { align: 'center' });
+                doc.text(header2, pageWidth / 2, 26, { align: 'center' });
+                doc.text(header3, pageWidth / 2, 34, { align: 'center' });
+                // Subtitle: report type, normal font, centered
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'normal');
+                doc.text("Sit-in Reports", pageWidth / 2, 46, { align: 'center' });
+                doc.setFontSize(11);
+                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, 54, { align: 'center' });
+                let y = 62;
+                const filters = getFilterInfo();
                 if (filters.lab) doc.text(`Lab: ${filters.lab}`, 14, y);
                 if (filters.purpose) doc.text(`Purpose: ${filters.purpose}`, 14, y += 7);
-                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, y += 7);
                 
                 // Get table data
                 const table = document.getElementById('reportTable');
@@ -1029,45 +1041,47 @@
             }
         }
 
-        // Update exportToExcel to include filter information
+        // Update exportToExcel to include university header
         function exportToExcel() {
             const table = document.getElementById('reportTable');
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.table_to_sheet(table);
             const filters = getFilterInfo();
             
-            // Add title and filter information
-            const header = ['Sit-in Reports'];
-            if (filters.lab) header.push(`Lab: ${filters.lab}`);
-            if (filters.purpose) header.push(`Purpose: ${filters.purpose}`);
-            header.push(`Generated on: ${new Date().toLocaleDateString()}`);
-            
-            XLSX.utils.sheet_add_aoa(ws, [header], { origin: 'A1' });
+            // Add university header and title, bold and larger
+            const header = [
+                ['University of Cebu-Main Campus College of Computer Studies Computer Labratory Sit-in Monitoring System'],
+                ['Sit-in Reports']
+            ];
+            if (filters.lab) header.push([`Lab: ${filters.lab}`]);
+            if (filters.purpose) header.push([`Purpose: ${filters.purpose}`]);
+            header.push([`Generated on: ${new Date().toLocaleDateString()}`]);
+            header.push(['']);
+            XLSX.utils.sheet_add_aoa(ws, header, { origin: 'A1' });
+            // Style: make first row bold and larger (Excel will show as default, but can be styled by user)
             XLSX.utils.book_append_sheet(wb, ws, "Sit-in Reports");
             XLSX.writeFile(wb, "Sit-in_Reports.xlsx");
             showMessage('Excel file exported successfully', 'success');
         }
 
-        // Update exportToCSV to include filter information
+        // Update exportToCSV to include university header
         function exportToCSV() {
             const table = document.getElementById('reportTable');
             const filters = getFilterInfo();
             let csv = [];
-            
-            // Add title and filter information
+            // Add university header and title
+            csv.push(['University of Cebu-Main Campus College of Computer Studies Computer Labratory Sit-in Monitoring System']);
             csv.push(['Sit-in Reports']);
             if (filters.lab) csv.push([`Lab: ${filters.lab}`]);
             if (filters.purpose) csv.push([`Purpose: ${filters.purpose}`]);
             csv.push([`Generated on: ${new Date().toLocaleDateString()}`]);
             csv.push([]);
-            
             // Add headers
             const headers = [];
             for (let th of table.querySelectorAll('th')) {
                 headers.push(th.textContent.trim());
             }
             csv.push(headers);
-            
             // Add data
             for (let tr of table.querySelectorAll('tbody tr')) {
                 const row = [];
@@ -1076,17 +1090,14 @@
                 }
                 csv.push(row);
             }
-            
             // Convert to CSV string
             const csvContent = csv.map(row => row.join(',')).join('\n');
-            
             // Create and download file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = 'Sit-in_Reports.csv';
             link.click();
-            
             showMessage('CSV file exported successfully', 'success');
         }
 

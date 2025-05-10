@@ -228,6 +228,22 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
+        .select-all-btn {
+            background: #41644A;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 18px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .select-all-btn:hover {
+            background: #2d4633;
+        }
+
         @media (max-width: 992px) {
             .navbar {
                 height: auto;
@@ -283,8 +299,8 @@
             <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
             <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
             <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-laptop-code"></i> Lab Resources</a></li>
-            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-laptop-code"></i> adminlabschedule</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-desktop"></i> Lab Resources</a></li>
+            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-clock"></i> Lab Schedule</a></li>
             <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>
         </ul>
         <div class="logout-container">
@@ -345,6 +361,7 @@
                 {% for lab_number in [544, 542, 530, 526, 524, 528] %}
                 <div class="lab-section" data-lab="{{ lab_number }}">
                     <h3 class="lab-title">Room {{ lab_number }}</h3>
+                    <button class="select-all-btn" onclick="toggleAllPCs('{{ lab_number }}')">Select All</button>
                     <div class="computers-container">
                         {% for i in range(1, 51) %}
                         <div class="computer-card available" data-computer="{{ i }}">
@@ -365,22 +382,32 @@
         document.getElementById('statusFilter').addEventListener('change', filterComputers);
 
         function updatePCStatus() {
-            fetch('/get_current_sit_in_status')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Reset all PCs to available first
-                        document.querySelectorAll('.computer-card').forEach(card => {
-                            card.classList.remove('in-use');
-                            card.classList.add('available');
-                        });
-
-                        // Mark PCs that are in use based on current sit-ins
-                        data.pc_status.forEach(pc => {
+            // Get the current date for querying saved statuses
+            const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            
+            // Get both current sit-in status and saved PC statuses
+            Promise.all([
+                fetch('/get_current_sit_in_status'),
+                fetch(`/get_saved_pc_status?date=${currentDate}`)
+            ])
+            .then(responses => Promise.all(responses.map(res => res.json())))
+            .then(([sitInData, savedStatusData]) => {
+                if (sitInData.success && savedStatusData.success) {
+                    // Reset all PCs to available first
+                    document.querySelectorAll('.computer-card').forEach(card => {
+                        card.classList.remove('in-use');
+                        card.classList.add('available');
+                        const pcNumber = card.getAttribute('data-computer');
+                        card.innerHTML = `PC ${pcNumber}`;
+                    });
+                    
+                    // Apply saved status changes first
+                    if (savedStatusData.pc_statuses && savedStatusData.pc_statuses.length > 0) {
+                        savedStatusData.pc_statuses.forEach(pc => {
                             const labSection = document.querySelector(`.lab-section[data-lab="${pc.lab.replace('Room ', '')}"]`);
                             if (labSection) {
                                 const pcCard = labSection.querySelector(`.computer-card[data-computer="${pc.pc_number}"]`);
-                                if (pcCard) {
+                                if (pcCard && pc.status === 'in-use') {
                                     pcCard.classList.remove('available');
                                     pcCard.classList.add('in-use');
                                     pcCard.innerHTML = `
@@ -390,18 +417,51 @@
                                 }
                             }
                         });
-                    } else {
-                        console.error('Failed to fetch PC status:', data.message);
                     }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+
+                    // Then apply current sit-in status (these take precedence)
+                    sitInData.pc_status.forEach(pc => {
+                        const labSection = document.querySelector(`.lab-section[data-lab="${pc.lab.replace('Room ', '')}"]`);
+                        if (labSection) {
+                            const pcCard = labSection.querySelector(`.computer-card[data-computer="${pc.pc_number}"]`);
+                            if (pcCard) {
+                                pcCard.classList.remove('available');
+                                pcCard.classList.add('in-use');
+                                pcCard.innerHTML = `
+                                    PC ${pc.pc_number}
+                                    <i class="fas fa-user"></i>
+                                `;
+                                // Add student info as tooltip
+                                pcCard.title = pc.student_name && pc.student_id && pc.course && pc.year_level
+                                    ? `Name: ${pc.student_name}\nID: ${pc.student_id}\nCourse: ${pc.course}\nYear: ${pc.year_level}`
+                                    : pc.student_name ? `Name: ${pc.student_name}\nID: ${pc.student_id}` : '';
+                            }
+                        }
+                    });
+                } else {
+                    console.error('Failed to fetch PC status:', 
+                        sitInData.message || savedStatusData.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
         }
 
         // Update PC status initially and every 30 seconds
         updatePCStatus();
         setInterval(updatePCStatus, 30000);
+
+        // Make sure all in-use PCs show the user icon when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.computer-card.in-use').forEach(card => {
+                const pcNumber = card.getAttribute('data-computer');
+                card.innerHTML = `
+                    PC ${pcNumber}
+                    <i class="fas fa-user"></i>
+                `;
+            });
+        });
 
         function filterComputers() {
             const selectedLab = document.getElementById('labFilter').value;
@@ -428,28 +488,226 @@
             });
         }
 
-        // Computer status toggle with confirmation
+        // Computer status toggle with confirmation and server update
         document.querySelectorAll('.computer-card').forEach(card => {
             card.addEventListener('click', function() {
+                const labSection = this.closest('.lab-section');
+                const lab = labSection ? labSection.getAttribute('data-lab') : null;
+                const pc_number = this.getAttribute('data-computer');
+                let newStatus;
+                
                 if (this.classList.contains('in-use')) {
-                    alert('This PC is currently in use by a student in sit-in.');
-                    return;
+                    // Check if this PC is in use by a student or blocked by admin
+                    if (this.querySelector('.fa-user')) {
+                        alert('This PC is currently in use by a student in sit-in.');
+                        return;
+                    }
                 }
                 
                 if (confirm('Do you want to toggle this PC\'s status?')) {
                     this.classList.toggle('available');
                     this.classList.toggle('in-use');
+                    
+                    // Current date and time for database
+                    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+                    const currentTime = new Date().toTimeString().split(' ')[0]; // HH:MM:SS format
+                    
                     if (this.classList.contains('in-use')) {
                         this.innerHTML = `
-                            ${this.textContent}
+                            PC ${pc_number}
                             <i class="fas fa-user"></i>
                         `;
+                        newStatus = 'in-use';
                     } else {
-                        this.innerHTML = this.textContent;
+                        this.innerHTML = `PC ${pc_number}`;
+                        newStatus = 'available';
                     }
+                    
+                    // Send the status change to the server
+                    fetch('/api/pc_status/toggle', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            lab: 'Room ' + lab,
+                            pc_number: pc_number,
+                            status: newStatus,
+                            date: currentDate,
+                            time: currentTime
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            // Revert UI change if server update fails
+                            this.classList.toggle('available');
+                            this.classList.toggle('in-use');
+                            if (this.classList.contains('in-use')) {
+                                this.innerHTML = `
+                                    PC ${pc_number}
+                                    <i class="fas fa-user"></i>
+                                `;
+                            } else {
+                                this.innerHTML = `PC ${pc_number}`;
+                            }
+                            alert('Failed to update PC status: ' + (data.message || 'Unknown error'));
+                        }
+                    })
+                    .catch(error => {
+                        // Revert UI change on error
+                        this.classList.toggle('available');
+                        this.classList.toggle('in-use');
+                        if (this.classList.contains('in-use')) {
+                            this.innerHTML = `
+                                PC ${pc_number}
+                                <i class="fas fa-user"></i>
+                            `;
+                        } else {
+                            this.innerHTML = `PC ${pc_number}`;
+                        }
+                        console.error('Error:', error);
+                        alert('An error occurred while updating PC status');
+                    });
                 }
             });
         });
+
+        function toggleAllPCs(labNumber) {
+            const labSection = document.querySelector(`.lab-section[data-lab='${labNumber}']`);
+            const pcCards = labSection.querySelectorAll('.computer-card');
+            // Determine if we should set all to in-use or available
+            const anyAvailable = Array.from(pcCards).some(card => card.classList.contains('available'));
+            const newStatus = anyAvailable ? 'in-use' : 'available';
+            
+            // Show confirmation dialog with appropriate message
+            let confirmMessage = '';
+            if (newStatus === 'in-use') {
+                confirmMessage = `⚠️ WARNING: You are about to mark ALL computers in Room ${labNumber} as IN USE.\n\nThis will prevent students from selecting these PCs for reservation.\n\nDo you want to continue?`;
+            } else {
+                confirmMessage = `You are about to mark ALL computers in Room ${labNumber} as AVAILABLE.\n\nThis will allow students to select these PCs for reservation.\n\nDo you want to continue?`;
+            }
+            
+            if (!confirm(confirmMessage)) {
+                return; // User cancelled the operation
+            }
+            
+            console.log(`Toggling all PCs in lab ${labNumber} to ${newStatus}`);
+            
+            // Current date and time for the database
+            const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const currentTime = new Date().toTimeString().split(' ')[0]; // HH:MM:SS
+            
+            // Collect all PC numbers for bulk update
+            const pcNumbers = [];
+            
+            pcCards.forEach(card => {
+                // Only toggle if not already in the desired state or if PC is not in use by student
+                if (!card.classList.contains(newStatus) && !card.querySelector('.fa-user[title*="student"]')) {
+                    const pcNumber = card.getAttribute('data-computer');
+                    pcNumbers.push(pcNumber);
+                    
+                    card.classList.remove('available', 'in-use');
+                    card.classList.add(newStatus);
+                    if (newStatus === 'in-use') {
+                        card.innerHTML = `
+                            PC ${pcNumber}
+                            <i class="fas fa-user"></i>
+                        `;
+                    } else {
+                        card.innerHTML = `PC ${pcNumber}`;
+                    }
+                }
+            });
+            
+            // If we have PCs to update, send a bulk update to the server
+            if (pcNumbers.length > 0) {
+                // Show status message
+                const statusMessageId = `status-message-${labNumber}`;
+                let statusMessage = document.getElementById(statusMessageId);
+                
+                if (!statusMessage) {
+                    statusMessage = document.createElement('div');
+                    statusMessage.id = statusMessageId;
+                    statusMessage.style.marginTop = '10px';
+                    statusMessage.style.padding = '10px';
+                    statusMessage.style.borderRadius = '6px';
+                    statusMessage.style.fontSize = '0.9em';
+                    labSection.appendChild(statusMessage);
+                }
+                
+                statusMessage.style.backgroundColor = '#f8f9fa';
+                statusMessage.style.color = '#333';
+                statusMessage.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Updating ${pcNumbers.length} PCs in Room ${labNumber}...`;
+                
+                console.log(`Sending update for ${pcNumbers.length} PCs in lab ${labNumber}`);
+                
+                // Use a clear, explicit status string to avoid any variable scope issues
+                const statusToSet = anyAvailable ? 'in-use' : 'available';
+                
+                fetch('/api/pc_status/toggle_all', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lab: 'Room ' + labNumber,
+                        pc_numbers: pcNumbers,
+                        status: statusToSet,
+                        date: currentDate,
+                        time: currentTime,
+                        force_refresh: true
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        console.error('Error updating PC statuses:', data.message);
+                        statusMessage.style.backgroundColor = '#f8d7da';
+                        statusMessage.style.color = '#721c24';
+                        statusMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Failed to update PC statuses: ${data.message || 'Unknown error'}`;
+                        
+                        setTimeout(() => {
+                            statusMessage.style.display = 'none';
+                        }, 5000);
+                    } else {
+                        console.log('Successfully updated PC statuses:', data);
+                        
+                        const successColor = newStatus === 'in-use' ? '#E9772B' : '#41644A';
+                        const icon = newStatus === 'in-use' ? 'lock' : 'unlock';
+                        
+                        statusMessage.style.backgroundColor = successColor;
+                        statusMessage.style.color = 'white';
+                        statusMessage.innerHTML = `
+                            <i class="fas fa-${icon}"></i> Successfully marked ${pcNumbers.length} PCs as ${newStatus.toUpperCase()}.
+                            <div style="margin-top: 5px; font-size: 0.9em;">
+                                <i class="fas fa-info-circle"></i> Students ${newStatus === 'in-use' ? 'cannot' : 'can now'} reserve these PCs.
+                            </div>
+                        `;
+                        
+                        setTimeout(() => {
+                            statusMessage.style.display = 'none';
+                        }, 5000);
+                        
+                        // Immediately verify the update by fetching current status
+                        fetch(`/get_saved_pc_status?date=${currentDate}&t=${new Date().getTime()}`)
+                            .then(res => res.json())
+                            .then(statusData => {
+                                console.log('Current PC status after update:', statusData);
+                            })
+                            .catch(err => console.error('Error verifying update:', err));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    statusMessage.style.backgroundColor = '#f8d7da';
+                    statusMessage.style.color = '#721c24';
+                    statusMessage.innerHTML = `<i class="fas fa-exclamation-triangle"></i> An error occurred while updating PC statuses`;
+                    
+                    setTimeout(() => {
+                        statusMessage.style.display = 'none';
+                    }, 5000);
+                });
+            }
+        }
     </script>
 </body>
 </html> 

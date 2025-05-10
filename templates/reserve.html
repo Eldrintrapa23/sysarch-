@@ -219,23 +219,55 @@
 
         .pc-selection {
             margin-top: 20px;
-            background: rgba(65, 100, 74, 0.05);
+            background: #f8f9fa; /* Light gray background like image */
             padding: 20px;
             border-radius: 12px;
+            border: 1px solid #e1e1e1; /* Add subtle border */
         }
 
         .section-header {
             display: flex;
             align-items: center;
+            justify-content: space-between; /* Align title left, button right */
             gap: 10px;
             color: #41644A;
             font-size: 1.3em;
             font-weight: 600;
-            margin-bottom: 25px;
+            margin-bottom: 15px; /* Reduced margin */
             padding-bottom: 15px;
             border-bottom: 3px solid #E9772B;
         }
+        
+        /* Style for the container holding the legend buttons */
+        .legend-buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px; /* Space below buttons */
+        }
 
+        /* Style for the legend buttons */
+        .legend-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: white;
+            border: none;
+        }
+
+        .legend-button.available {
+            background: #41644A;
+        }
+
+        .legend-button.in-use {
+            background: #E9772B;
+        }
+        
+        /* Remove the old legend style */
+        /*
         .status-legend {
             display: flex;
             gap: 15px;
@@ -251,29 +283,34 @@
             border-radius: 6px;
             font-size: 0.9em;
         }
+        */
 
         .computers-container {
             display: grid;
             grid-template-columns: repeat(10, 1fr);
             gap: 10px;
-            padding: 20px;
-            background: rgba(65, 100, 74, 0.05);
-            border-radius: 12px;
+            padding: 15px; /* Slightly reduced padding */
+            background: #ffffff; /* White background for the grid itself */
+            border-radius: 8px;
+            border: 1px solid #e1e1e1; /* Border around the grid */
         }
 
         .computer-card {
             position: relative;
-            width: 60px;
-            height: 60px;
+            /* width: 60px; */ /* Let grid control width */
+            /* height: 60px; */ /* Let grid control height */
+            aspect-ratio: 1 / 1; /* Make cards square */
             display: inline-flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            text-align: center; /* Center text */
             border-radius: 8px;
-            margin: 5px;
+            /* margin: 5px; */ /* Use grid gap */
             cursor: pointer;
             transition: all 0.3s ease;
             color: white;
+            padding: 5px; /* Add padding inside card */
         }
 
         .computer-card.available {
@@ -294,6 +331,26 @@
             outline: 3px solid #E9772B;
             outline-offset: 2px;
             transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .computer-card.selected::after {
+            content: '✓';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #E9772B;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
         }
 
         .pc-number {
@@ -326,6 +383,102 @@
             opacity: 1;
             visibility: visible;
         }
+
+        .computer-card.in-use {
+            background: #E9772B;
+            cursor: not-allowed;
+            position: relative;
+            overflow: hidden;
+        }
+        .computer-card.admin-locked {
+            background: #E9772B;
+            cursor: not-allowed;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #b3541c;
+        }
+        .computer-card.admin-locked .pc-number {
+            font-weight: 700;
+            color: white;
+        }
+        .computer-card:hover .status-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+        /* Style for the refresh button */
+        .refresh-button {
+             padding: 8px 15px; /* Match legend button padding */
+             background: #41644A;
+             color: white;
+             border: none;
+             border-radius: 6px; /* Match legend button radius */
+             cursor: pointer;
+             font-size: 0.9em; /* Match legend button size */
+             font-weight: 500; /* Match legend button weight */
+        }
+        .refresh-button i {
+             margin-right: 5px;
+        }
+         /* Style for the note section */
+        .reservation-note {
+            margin-top: 20px; /* More space above note */
+            color: #555; /* Slightly darker text */
+            padding: 15px;
+            background-color: #ffffff; /* White background */
+            border-radius: 8px;
+            border: 1px solid #e1e1e1; /* Match grid border */
+            font-size: 0.85em; /* Slightly smaller text */
+        }
+        .reservation-note p {
+            margin-bottom: 8px; /* Space below Note: */
+            font-weight: 600;
+        }
+        .reservation-note p i {
+             margin-right: 5px;
+             color: #41644A; /* Match icon color */
+        }
+        .reservation-note ul {
+            padding-left: 0; /* Reset padding */
+            margin-top: 5px; 
+            margin-bottom: 0;
+            list-style: none; /* Remove default bullets */
+        }
+         .reservation-note li {
+             margin-bottom: 6px;
+             position: relative;
+             padding-left: 25px; /* Space for icon */
+        }
+         .reservation-note li:last-child {
+             margin-bottom: 0; /* No margin on last item */
+        }
+         .reservation-note li i {
+             position: absolute;
+             left: 0;
+             top: 3px; /* Adjust icon alignment */
+             width: 18px; /* Fixed width for alignment */
+             text-align: center;
+             font-size: 0.9em; /* Adjust icon size */
+        }
+         .reservation-note strong {
+            font-weight: 600; /* Ensure strong is used */
+            color: #333;
+         }
+        .alert-message {
+             padding: 10px 15px;
+             margin-bottom: 15px;
+             background-color: #f8f9fa;
+             color: #333;
+             border-radius: 8px;
+             font-size: 0.9em;
+             border: 1px solid #ddd;
+             display: flex; /* Use flex for alignment */
+             align-items: flex-start; /* Align items top */
+             gap: 8px; /* Space between icon and text */
+        }
+         .alert-message > i:first-child { /* Style the main info icon */
+             margin-top: 2px; /* Align icon slightly */
+             color: #41644A;
+         }
     </style>
 </head>
 <body>
@@ -406,18 +559,17 @@
             <!-- PC Selection Section -->
             <div class="form-group pc-selection" id="pcSelection">
                 <div class="section-header">
-                    <i class="fas fa-desktop"></i>
-                    Select Computer
+                    <div><i class="fas fa-desktop"></i> Select Computer</div>
                 </div>
 
-                <!-- Status Legend -->
-                <div class="status-legend">
-                    <span class="status-badge" style="background: #41644A; color: white;">
+                <!-- Status Legend Buttons -->
+                <div class="legend-buttons-container">
+                    <button class="legend-button available">
                         <i class="fas fa-check"></i> Available
-                    </span>
-                    <span class="status-badge" style="background: #E9772B; color: white;">
+                    </button>
+                    <button class="legend-button in-use">
                         <i class="fas fa-user"></i> In Use
-                    </span>
+                    </button>
                 </div>
 
                 <div class="computers-container" id="pcGrid">
@@ -454,12 +606,12 @@
             {% for reservation in reservations %}
                 <div class="status-item">
                     <strong>Status:</strong>
-                    {% if reservation[8] == 'approved' %}
-                        <span style="color: green; font-weight: bold;">{{ reservation[8] }}</span>
-                    {% elif reservation[8] == 'rejected' %}
-                        <span style="color: red; font-weight: bold;">{{ reservation[8] }}</span>
+                    {% if reservation[5] == 'approved' %}
+                        <span style="color: green; font-weight: bold;">{{ reservation[5] }}</span>
+                    {% elif reservation[5] == 'rejected' %}
+                        <span style="color: red; font-weight: bold;">{{ reservation[5] }}</span>
                     {% else %}
-                        <span class="status-pending">{{ reservation[8] }}</span>
+                        <span class="status-pending">{{ reservation[5] }}</span>
                     {% endif %}
                 </div>
                 <div class="status-item">
@@ -469,7 +621,10 @@
                     <strong>Time:</strong> {{ reservation[1] }}
                 </div>
                 <div class="status-item">
-                    <strong>Lab Room:</strong> {{ reservation[5] }}
+                    <strong>Lab Room:</strong> {{ reservation[3].replace('Room ', '') }}
+                </div>
+                <div class="status-item">
+                    <strong>PC Number:</strong> PC {{ reservation[4] }}
                 </div>
                 <div class="status-item">
                     <strong>Purpose:</strong> {{ reservation[2] }}
@@ -483,119 +638,403 @@
 </div>
 
 <script>
-function updatePCAvailability() {
+function updatePCAvailability(force = false) {
     const lab = document.getElementById('lab').value;
-    const date = document.getElementById('date').value;
-    const time = document.getElementById('time').value;
+    const date = document.getElementById('date').value || new Date().toISOString().split('T')[0];
+    const time = document.getElementById('time').value || new Date().toTimeString().split(' ')[0];
     const pcSelection = document.getElementById('pcSelection');
+    const pcGrid = document.getElementById('pcGrid');
     
-    console.log('Updating PC availability with:', { lab, date, time });
+    console.log('Updating PC availability with:', { lab, date, time, force });
     
     // Show/hide PC selection based on whether lab is selected
     pcSelection.style.display = lab ? 'block' : 'none';
     
     if (lab) {
-        // First, get current sit-in status
-        fetch('/get_current_sit_in_status')
-            .then(response => response.json())
-            .then(sitInData => {
-                // Then check reservation availability
-                if (date && time) {
-                    return fetch('/check_pc_availability', {
+        // Show loading indicator
+        pcGrid.innerHTML = '<div style="text-align: center; width: 100%; padding: 20px;"><i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #41644A;"></i><p>Loading PC availability...</p></div>';
+        
+        const cacheBuster = `&t=${new Date().getTime()}`; // Always add cache buster
+        
+        // Get all sources of PC status
+        Promise.all([
+            fetch('/get_current_sit_in_status', { headers: {'Cache-Control': 'no-cache'} }), // Add no-cache header
+            fetch(`/get_saved_pc_status?date=${date}${cacheBuster}`, { headers: {'Cache-Control': 'no-cache'} }), // Add no-cache header and ensure cache buster
+            fetch('/check_pc_availability', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache' // Also prevent caching here
                         },
                         body: JSON.stringify({
                             lab: lab,
                             date: date,
                             time: time
                         })
-                    })
-                    .then(response => response.json())
-                    .then(reservationData => {
-                        return {
-                            sitInData: sitInData,
-                            reservationData: reservationData
-                        };
-                    });
-                }
-                return {
-                    sitInData: sitInData,
-                    reservationData: null
-                };
             })
-            .then(data => {
-                console.log('Received PC status data:', data);
-                if (data.sitInData.success) {
-                    const pcStatus = {};
-                    // Initialize all PCs as available
-                    for (let i = 1; i <= 50; i++) {
-                        pcStatus[i] = 'available';
-                    }
-                    
-                    // Mark PCs that are in current sit-in as in-use
-                    data.sitInData.pc_status.forEach(pc => {
-                        if (pc.lab === lab) {
-                            pcStatus[pc.pc_number] = 'in-use';
-                        }
-                    });
-                    
-                    // If we have reservation data, also mark reserved PCs as in-use
-                    if (data.reservationData && data.reservationData.success) {
-                        Object.entries(data.reservationData.pc_status).forEach(([pc, status]) => {
-                            if (status === 'in-use') {
-                                pcStatus[pc] = 'in-use';
-                            }
-                        });
-                    }
-                    
-                    displayPCGrid(pcStatus);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+        ])
+        .then(responses => {
+            // Check if responses are OK before parsing JSON
+            const sitInRes = responses[0];
+            const savedStatusRes = responses[1];
+            const reservationRes = responses[2]; // This one is already a Response object
+
+            // Handle potential errors (like 404 or 500) before trying to parse
+            const sitInJson = sitInRes.ok ? sitInRes.json() : Promise.resolve({ success: false, message: `Sit-in status fetch failed: ${sitInRes.statusText}` });
+            const savedStatusJson = savedStatusRes.ok ? savedStatusRes.json() : Promise.resolve({ success: false, message: `Saved status fetch failed: ${savedStatusRes.statusText}` });
+            const reservationJson = reservationRes.ok ? reservationRes.json() : Promise.resolve({ success: false, message: `Reservation check failed: ${reservationRes.statusText}` });
+            
+            return Promise.all([sitInJson, savedStatusJson, reservationJson]);
+        })
+        .then(([sitInData, savedStatusData, reservationData]) => {
+            // Store the saved status data globally for reference
+            window.savedStatusData = savedStatusData; // Store even if fetch failed, to check success flag later
+            
+            console.log('Received PC status data:', { 
+                sitInData, 
+                savedStatusData, 
+                reservationData,
+                currentLab: lab
             });
+            
+            // Use a single object to track final status and reason
+            const finalPcStatus = {};
+            for (let i = 1; i <= 50; i++) {
+                finalPcStatus[i] = { status: 'available', reason: 'default' };
+            }
+
+            // Normalize current lab name once
+            const currentLabNormalized = lab.replace('Room ', '');
+
+            // Apply statuses with priority:
+            // 1. Admin Saved Status (Highest priority)
+            if (savedStatusData && savedStatusData.success && savedStatusData.pc_statuses) {
+                console.log('Processing saved PC statuses:', savedStatusData.pc_statuses);
+                savedStatusData.pc_statuses.forEach(pc => {
+                    const pcLabNormalized = pc.lab.replace('Room ', '');
+                    const labMatches = (pcLabNormalized === currentLabNormalized) || 
+                                     (pc.lab === lab) || 
+                                     (`Room ${pcLabNormalized}` === lab) ||
+                                     (pc.lab === `Room ${currentLabNormalized}`);
+                    
+                    const pcStatusVal = pc.status ? pc.status.toLowerCase() : '';
+                    const isAdminInUse = pcStatusVal.includes('in-use') || 
+                                       pcStatusVal.includes('inuse') ||
+                                       pcStatusVal === 'in_use';
+
+                    if (labMatches && isAdminInUse) {
+                        console.log(`★★ ADMIN PRIORITY: Marking PC ${pc.pc_number} as in-use (admin)`);
+                        finalPcStatus[pc.pc_number] = { status: 'in-use', reason: 'admin' };
+                    }
+                });
+            }
+
+            // 2. Current Sit-ins (Only apply if not already admin-locked)
+            if (sitInData && sitInData.success && sitInData.pc_status) {
+                console.log('Checking sit-in data:', sitInData.pc_status);
+                sitInData.pc_status.forEach(pc => {
+                    const pcLabNormalized = pc.lab.replace('Room ', '');
+                    const labMatches = (pcLabNormalized === currentLabNormalized) || (pc.lab === lab);
+                    
+                    if (labMatches && finalPcStatus[pc.pc_number].reason !== 'admin') { // Check reason
+                        console.log(`Marking PC ${pc.pc_number} as in-use (sit-in)`);
+                        finalPcStatus[pc.pc_number] = { status: 'in-use', reason: 'sitin' };
+                    }
+                });
+            }
+
+            // 3. Reservations (Only apply if not admin-locked or sit-in)
+            if (reservationData && reservationData.success && reservationData.pc_status) {
+                console.log('Checking reservation data:', reservationData.pc_status);
+                Object.entries(reservationData.pc_status).forEach(([pcNum, statusInfo]) => {
+                    if (statusInfo.status === 'in-use' || statusInfo.status === 'reserved') {
+                        if (finalPcStatus[pcNum].status === 'available') { // Check current status
+                             console.log(`Marking PC ${pcNum} as in-use (reservation)`);
+                            finalPcStatus[pcNum] = { status: 'in-use', reason: 'reservation' };
+                        }
+                    }
+                });
+            }
+                    
+            console.log('Final PC status map with reasons:', finalPcStatus);
+            displayPCGrid(finalPcStatus); // Pass the object with reasons
+            
+        })
+        .catch(error => {
+            console.error('Error fetching or processing PC status:', error);
+            pcGrid.innerHTML = '<div style="text-align: center; width: 100%; padding: 20px; color: red;"><i class="fas fa-exclamation-triangle"></i><p>Error loading PC availability. Please try again.</p><button onclick="updatePCAvailability(true)" style="background: #41644A; color: white; border: none; border-radius: 4px; padding: 8px 15px; margin-top: 10px; cursor: pointer;"><i class="fas fa-sync-alt"></i> Retry</button></div>';
+        });
     }
 }
 
-function displayPCGrid(pcStatus) {
+function displayPCGrid(finalPcStatus) {
     const pcGrid = document.getElementById('pcGrid');
-    pcGrid.innerHTML = '';
+    pcGrid.innerHTML = ''; // Clear the grid itself
     
-    console.log('Displaying PC grid with status:', pcStatus);
+    console.log('Displaying PC grid with status and reasons:', finalPcStatus);
+    
+    // --- Remove existing notice before adding a new one ---
+    const pcSelectionContainer = pcGrid.parentElement;
+    if (pcSelectionContainer) {
+        const existingNotice = pcSelectionContainer.querySelector('.alert-message');
+        if (existingNotice) {
+            console.log('Removing existing admin notice.');
+            existingNotice.remove();
+        }
+        const existingNote = pcSelectionContainer.querySelector('.reservation-note');
+        if (existingNote) {
+            console.log('Removing existing reservation note.');
+            existingNote.remove();
+        }
+    }
+    // ------------------------------------------------------
+    
+    // Count admin-marked PCs for the notice
+    let adminMarkedCount = 0;
+    for (let i = 1; i <= 50; i++) {
+        if (finalPcStatus[i] && finalPcStatus[i].reason === 'admin') {
+            adminMarkedCount++;
+        }
+    }
+    
+    // Add an alert/notice at the top of the grid if there are admin-marked PCs
+    if (adminMarkedCount > 0) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert-message';
+        alertDiv.innerHTML = `
+            <i class="fas fa-info-circle"></i> 
+            <strong>Notice:</strong> ${adminMarkedCount} ${adminMarkedCount === 1 ? 'computer has' : 'computers have'} been marked as unavailable by lab administrators.
+            These PCs are indicated with a <i class="fas fa-lock" style="color: #fff; background: #E9772B; padding: 3px; border-radius: 50%; font-size: 0.8em;"></i> icon.
+        `;
+        
+        // Prepend the notice to the grid's PARENT element, before the grid itself
+        if (pcGrid.parentElement) {
+             pcGrid.parentElement.insertBefore(alertDiv, pcGrid);
+        }
+    }
+    
+    // Add CSS styles for the notice if not already present
+    if (!document.querySelector('#pc-notice-styles')) {
+        const noticeStyle = document.createElement('style');
+        noticeStyle.id = 'pc-notice-styles';
+        noticeStyle.textContent = `
+            .alert-message {
+                 padding: 10px 15px;
+                 margin-bottom: 15px;
+                 background-color: #f8f9fa;
+                 color: #333;
+                 border-radius: 8px;
+                 font-size: 0.9em;
+                 border: 1px solid #ddd;
+                 display: flex; /* Use flex for alignment */
+                 align-items: flex-start; /* Align items top */
+                 gap: 8px; /* Space between icon and text */
+            }
+             .alert-message > i:first-child { /* Style the main info icon */
+                 margin-top: 2px; /* Align icon slightly */
+                 color: #41644A;
+             }
+        `;
+        document.head.appendChild(noticeStyle);
+    }
     
     for (let i = 1; i <= 50; i++) {
         const pcDiv = document.createElement('div');
-        const isAvailable = pcStatus[i] === 'available';
+        const statusInfo = finalPcStatus[i] || { status: 'available', reason: 'default' }; // Default if missing
+        const isAvailable = statusInfo.status === 'available';
+        const isAdminMarked = statusInfo.reason === 'admin';
         
-        pcDiv.className = `computer-card ${isAvailable ? 'available' : 'in-use'}`;
-        pcDiv.innerHTML = `
-            <div class="pc-number">PC ${i}</div>
-            <div class="status-icon">
-                <i class="fas ${isAvailable ? 'fa-check' : 'fa-user'}"></i>
-            </div>
-            <div class="status-tooltip">
-                ${isAvailable ? 'Available' : 'In Use'}
-            </div>
-        `;
+        // Set classes based on status
+        if (isAvailable) {
+            pcDiv.className = 'computer-card available';
+        } else if (isAdminMarked) {
+            pcDiv.className = 'computer-card admin-locked';
+        } else {
+            pcDiv.className = 'computer-card in-use';
+        }
+        
+        pcDiv.dataset.pcNumber = i;
         
         if (isAvailable) {
+            pcDiv.innerHTML = `
+                <div class="pc-number">PC ${i}</div>
+                <div class="status-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="status-tooltip">
+                    Available
+                </div>
+            `;
+            
             pcDiv.onclick = function() {
+                // Store the PC number in the hidden input
                 document.getElementById('pc_number').value = i;
+                
                 // Remove previous selection
                 const previousSelected = document.querySelector('.computer-card.selected');
                 if (previousSelected) {
                     previousSelected.classList.remove('selected');
                 }
-                // Add selection to current PC
+                
+                // Add selection class to this PC
                 this.classList.add('selected');
+                
+                console.log('Selected PC:', i);
             };
+        } else if (isAdminMarked) {
+            // Admin-marked PCs
+            pcDiv.innerHTML = `
+                <div class="pc-number">PC ${i}</div>
+                <div class="status-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="status-tooltip">
+                    Unavailable (Admin)
+                </div>
+                <div class="unavailable-overlay admin">
+                    <i class="fas fa-lock"></i>
+                </div>
+            `;
+            pcDiv.title = 'This PC has been marked as unavailable by lab administrators';
         } else {
-            pcDiv.title = 'This PC is currently in use';
+            // Regular in-use PCs
+            pcDiv.innerHTML = `
+                <div class="pc-number">PC ${i}</div>
+                <div class="status-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="status-tooltip">
+                    In Use
+                </div>
+                <div class="unavailable-overlay">
+                    <i class="fas fa-user"></i>
+                </div>
+            `;
+            pcDiv.title = 'This PC is currently in use by another student';
         }
         
         pcGrid.appendChild(pcDiv);
+    }
+    
+    // Add styles for the different types of PCs if not already added
+    if (!document.querySelector('#pc-status-styles')) {
+        const style = document.createElement('style');
+        style.id = 'pc-status-styles';
+        style.textContent = `
+            .computer-card.in-use {
+                background: #E9772B;
+                cursor: not-allowed;
+                position: relative;
+                overflow: hidden;
+            }
+            .computer-card.admin-locked {
+                background: #E9772B;
+                cursor: not-allowed;
+                position: relative;
+                overflow: hidden;
+                border: 2px solid #b3541c;
+            }
+            .unavailable-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(0, 0, 0, 0.1);
+                font-size: 1.5em;
+                opacity: 0.7;
+            }
+            .unavailable-overlay.admin {
+                background-color: rgba(0, 0, 0, 0.2);
+            }
+            .computer-card.in-use .pc-number,
+            .computer-card.admin-locked .pc-number {
+                font-weight: 700;
+                color: white;
+            }
+            .computer-card:hover .status-tooltip {
+                opacity: 1;
+                visibility: visible;
+            }
+            /* Style for the refresh button */
+            .refresh-button {
+                 padding: 8px 15px; /* Match legend button padding */
+                 background: #41644A;
+                 color: white;
+                 border: none;
+                 border-radius: 6px; /* Match legend button radius */
+                 cursor: pointer;
+                 font-size: 0.9em; /* Match legend button size */
+                 font-weight: 500; /* Match legend button weight */
+            }
+            .refresh-button i {
+                 margin-right: 5px;
+            }
+             /* Style for the note section */
+            .reservation-note {
+                margin-top: 20px; /* More space above note */
+                color: #555; /* Slightly darker text */
+                padding: 15px;
+                background-color: #ffffff; /* White background */
+                border-radius: 8px;
+                border: 1px solid #e1e1e1; /* Match grid border */
+                font-size: 0.85em; /* Slightly smaller text */
+            }
+            .reservation-note p {
+                margin-bottom: 8px; /* Space below Note: */
+                font-weight: 600;
+            }
+            .reservation-note p i {
+                 margin-right: 5px;
+                 color: #41644A; /* Match icon color */
+            }
+            .reservation-note ul {
+                padding-left: 0; /* Reset padding */
+                margin-top: 5px; 
+                margin-bottom: 0;
+                list-style: none; /* Remove default bullets */
+            }
+             .reservation-note li {
+                 margin-bottom: 6px;
+                 position: relative;
+                 padding-left: 25px; /* Space for icon */
+            }
+             .reservation-note li:last-child {
+                 margin-bottom: 0; /* No margin on last item */
+            }
+             .reservation-note li i {
+                 position: absolute;
+                 left: 0;
+                 top: 3px; /* Adjust icon alignment */
+                 width: 18px; /* Fixed width for alignment */
+                 text-align: center;
+                 font-size: 0.9em; /* Adjust icon size */
+            }
+             .reservation-note strong {
+                font-weight: 600; /* Ensure strong is used */
+                color: #333;
+             }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Add explanation text at the bottom (Note section)
+    const noteDiv = document.createElement('div');
+    noteDiv.className = 'reservation-note';
+    // Use innerHTML matching the image structure and styling
+    noteDiv.innerHTML = `
+        <p><i class="fas fa-info-circle"></i> Note:</p>
+        <ul>
+            <li><i class="fas fa-lock" style="color: #E9772B;"></i> <strong style="color: #333;">Dark Orange</strong>: PCs marked unavailable by lab administrators</li>
+            <li><i class="fas fa-user" style="color: #E9772B;"></i> <strong style="color: #333;">Orange</strong>: PCs currently in use by other students</li>
+        </ul>
+    `;
+    // Append the note to the grid's PARENT element, AFTER the grid
+    if (pcGrid.parentElement) {
+         pcGrid.parentElement.appendChild(noteDiv);
     }
 }
 
@@ -606,6 +1045,8 @@ document.getElementById('time').addEventListener('change', updatePCAvailability)
 // Add form validation to ensure a PC is selected
 document.querySelector('form').onsubmit = function(e) {
     const selectedPC = document.getElementById('pc_number').value;
+    console.log('Form submission - Selected PC:', selectedPC);
+    
     if (!selectedPC) {
         alert('Please select a PC');
         e.preventDefault();
@@ -614,11 +1055,66 @@ document.querySelector('form').onsubmit = function(e) {
     return true;
 };
 
-// Initial check for PC availability
+// Add a function to force-refresh PC availability when selecting a lab
+document.getElementById('lab').addEventListener('change', function() {
+    console.log("Lab selection changed to:", this.value);
+    if (this.value) {
+        // Force clear any previously selected PC
+        document.getElementById('pc_number').value = '';
+        // Show loading message right away
+        const pcGrid = document.getElementById('pcGrid');
+        pcGrid.innerHTML = '<div style="text-align: center; width: 100%; padding: 20px;"><i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #41644A;"></i><p>Loading PC availability...</p></div>';
+        // Update availability with a slight delay to ensure UI updates
+        setTimeout(updatePCAvailability, 100);
+    }
+});
+
+// Add a function to periodically refresh PC availability
+function startPCStatusRefresh() {
+    // Update every 30 seconds
+    const refreshInterval = setInterval(() => {
+        const lab = document.getElementById('lab').value;
+        if (lab) {
+            console.log("Auto-refreshing PC status for lab:", lab);
+            updatePCAvailability();
+        }
+    }, 30000);
+    
+    // Store interval ID in case we need to clear it later
+    window.pcStatusRefreshInterval = refreshInterval;
+}
+
+// Start the refresh cycle when the page loads
 window.addEventListener('load', function() {
+    // Set default date to today if not already set
+    if (!document.getElementById('date').value) {
+        document.getElementById('date').value = new Date().toISOString().split('T')[0];
+    }
+    
+    // Always update PC availability on page load
     const lab = document.getElementById('lab').value;
     if (lab) {
         updatePCAvailability();
+    }
+    
+    // Start periodic refresh
+    startPCStatusRefresh();
+});
+
+// Update where the refresh button is added and how it's selected
+document.addEventListener('DOMContentLoaded', function() {
+    const pcSelectionHeader = document.querySelector('.pc-selection .section-header'); // Target the header div directly
+    if (pcSelectionHeader) { 
+        // Check if button already exists to prevent duplicates on hot reload/re-run
+        if (!pcSelectionHeader.querySelector('.refresh-button')) {
+            const refreshButton = document.createElement('button');
+            refreshButton.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+            refreshButton.className = 'refresh-button'; // Add class for styling
+            refreshButton.onclick = function() {
+                updatePCAvailability(true); // Force refresh
+            };
+            pcSelectionHeader.appendChild(refreshButton); // Append directly to the header div
+        }
     }
 });
 </script>

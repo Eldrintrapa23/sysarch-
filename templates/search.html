@@ -320,13 +320,13 @@
         .modal-content {
             background: white;
             width: 90%;
-            max-width: 500px;
+            max-width: 700px;
             margin: 20px auto;
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
             position: relative;
-            max-height: 90vh;
+            max-height: 95vh;
             overflow-y: auto;
         }
 
@@ -443,24 +443,39 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
             color: white;
-            font-size: 0.85em;
-            font-weight: 500;
-            padding: 6px;
+            font-size: 0.95em;
+            font-weight: 600;
+            padding: 0;
             position: relative;
+            border: 2px solid #f8f9fa;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
         }
 
         .computer-card .pc-number {
-            margin-bottom: 2px;
+            font-size: 1em;
+            font-weight: 600;
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
         }
 
         .computer-card .fa-user {
-            font-size: 0.9em;
+            font-size: 1.2em;
             position: absolute;
             bottom: 6px;
+            right: 6px;
+            color: #fff;
+            background: #E9772B;
+            border-radius: 50%;
+            padding: 2px 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
 
         .computer-card.available {
@@ -473,13 +488,15 @@
         }
 
         .computer-card:not(.in-use):hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transform: scale(1.08);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.13);
+            border-color: #E9772B;
         }
 
         .computer-card.selected {
             outline: 3px solid #E9772B;
             outline-offset: 2px;
+            border-color: #E9772B;
         }
 
         /* Update the status legend styles */
@@ -621,8 +638,8 @@
             <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
             <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
             <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-laptop-code"></i> Lab Resources</a></li>
-            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-laptop-code"></i> adminlabschedule</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-desktop"></i> Lab Resources</a></li>
+            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-clock"></i> Lab Schedule</a></li>
             <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>
         </ul>
         </ul>
@@ -655,6 +672,7 @@
                         <th>Year Level</th>
                         <th>Email Address</th>
                         <th>Remaining Sessions</th>
+                        <th>Points</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -669,6 +687,7 @@
                         <td>{{ student[5] }}</td>
                         <td>{{ student[6] }}</td>
                         <td>{{ student[7] }}</td>
+                        <td>{{ student[9] if student[9] is not none else 0 }}</td>
                         <td>
                             <div class="button-container">
                                 <button class="sit-in-btn" onclick="openModal('{{ student[0] }}', '{{ student[1] }}', '{{ student[2] }}')">
@@ -807,48 +826,71 @@
 
             document.getElementById("pcSelectionSection").style.display = "block";
             
-            // Fetch current PC status
-            fetch('/get_current_sit_in_status')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        const pcGrid = document.querySelector('.pc-grid');
-                        pcGrid.innerHTML = '';
-                        
-                        // Create a set of in-use PCs for the selected lab
-                        const inUsePCs = new Set();
-                        data.pc_status.forEach(pc => {
-                            if (pc.lab === `Room ${lab}`) {
-                                inUsePCs.add(pc.pc_number);
+            // Show loading indicator
+            const pcGrid = document.querySelector('.pc-grid');
+            pcGrid.innerHTML = '<div style="text-align: center; width: 100%; padding: 20px;"><i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #41644A;"></i><p>Loading PC availability...</p></div>';
+            
+            // Get current date for querying saved statuses
+            const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            
+            // Get all sources of PC status
+            Promise.all([
+                fetch('/get_current_sit_in_status'),
+                fetch(`/get_saved_pc_status?date=${currentDate}`)
+            ])
+            .then(responses => Promise.all(responses.map(res => res.json())))
+            .then(([sitInData, savedStatusData]) => {
+                if (sitInData.success) {
+                    const pcGrid = document.querySelector('.pc-grid');
+                    pcGrid.innerHTML = '';
+                    
+                    // Create a set of in-use PCs for the selected lab
+                    const inUsePCs = new Set();
+                    
+                    // Add PCs from current sit-ins
+                    sitInData.pc_status.forEach(pc => {
+                        if (pc.lab === `Room ${lab}`) {
+                            inUsePCs.add(pc.pc_number);
+                        }
+                    });
+                    
+                    // Add PCs from admin controls
+                    if (savedStatusData.success && savedStatusData.pc_statuses) {
+                        savedStatusData.pc_statuses.forEach(pc => {
+                            // Fix the lab comparison to handle "Room 542" format from database
+                            const pcLab = pc.lab.replace('Room ', '');
+                            if (pcLab === lab && pc.status === 'in-use') {
+                                inUsePCs.add(parseInt(pc.pc_number));
                             }
                         });
-
-                        // Create 50 PC cards
-                        for (let i = 1; i <= 50; i++) {
-                            const isInUse = inUsePCs.has(i);
-                            const pcCard = document.createElement('div');
-                            pcCard.className = `computer-card ${isInUse ? 'in-use' : 'available'}`;
-                            pcCard.innerHTML = `
-                                <span class="pc-number">PC ${i}</span>
-                                ${isInUse ? '<i class="fas fa-user"></i>' : ''}
-                            `;
-                            pcCard.dataset.pcNumber = i;
-
-                            if (!isInUse) {
-                                pcCard.addEventListener('click', function() {
-                                    document.querySelectorAll('.computer-card').forEach(card => {
-                                        card.classList.remove('selected');
-                                    });
-                                    this.classList.add('selected');
-                                    document.getElementById("selectedPC").value = this.dataset.pcNumber;
-                                });
-                            }
-
-                            pcGrid.appendChild(pcCard);
-                        }
                     }
-                })
-                .catch(error => console.error('Error:', error));
+
+                    // Create 50 PC cards
+                    for (let i = 1; i <= 50; i++) {
+                        const isInUse = inUsePCs.has(i);
+                        const pcCard = document.createElement('div');
+                        pcCard.className = `computer-card ${isInUse ? 'in-use' : 'available'}`;
+                        pcCard.innerHTML = `
+                            <span class="pc-number">PC ${i}</span>
+                            ${isInUse ? '<i class="fas fa-user"></i>' : ''}
+                        `;
+                        pcCard.dataset.pcNumber = i;
+
+                        if (!isInUse) {
+                            pcCard.addEventListener('click', function() {
+                                document.querySelectorAll('.computer-card').forEach(card => {
+                                    card.classList.remove('selected');
+                                });
+                                this.classList.add('selected');
+                                document.getElementById("selectedPC").value = this.dataset.pcNumber;
+                            });
+                        }
+
+                        pcGrid.appendChild(pcCard);
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
         }
 
         function submitForm() {
@@ -872,17 +914,37 @@
                 return;
             }
 
-            fetch('/sit_in', {
+            // Current date and time for the database
+            const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const currentTime = new Date().toTimeString().split(' ')[0]; // HH:MM:SS
+
+            // First update the PC status in the database
+            fetch('/api/pc_status/toggle', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    id_number: idNumber,
-                    last_name: lastName,
-                    first_name: firstName,
-                    purpose: purpose,
-                    lab: lab,
-                    pc_number: pcNumber
+                    lab: `Room ${lab}`,
+                    pc_number: pcNumber,
+                    status: 'in-use',
+                    date: currentDate,
+                    time: currentTime
                 })
+            })
+            .then(response => response.json())
+            .then(statusResult => {
+                // Then submit the sit-in form
+                return fetch('/sit_in', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_number: idNumber,
+                        last_name: lastName,
+                        first_name: firstName,
+                        purpose: purpose,
+                        lab: lab,
+                        pc_number: pcNumber
+                    })
+                });
             })
             .then(response => response.json())
             .then(data => {

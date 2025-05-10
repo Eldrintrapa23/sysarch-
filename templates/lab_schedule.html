@@ -114,6 +114,7 @@
         .back-btn:hover {
             background: #d66a24;
             transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
         .back-btn i {
@@ -155,6 +156,35 @@
             border: 1px solid #c8e6c9;
         }
 
+        .available {
+            background-color: #dff0d8;
+            color: #3c763d;
+            font-weight: 500;
+        }
+
+        .used {
+            background-color: #f2dede;
+            color: #a94442;
+            font-weight: 600;
+        }
+        .used span {
+            display: block;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #843534;
+            margin-top: 2px;
+        }
+
+        .schedule-cell:hover {
+             background-color: #e9ecef;
+        }
+        .available:hover {
+            background-color: #d0e9c6;
+        }
+        .used:hover {
+             background-color: #ebcccc;
+        }
+
         @media (max-width: 768px) {
             .schedule-grid th, .schedule-grid td {
                 padding: 10px;
@@ -178,29 +208,33 @@
                 <i class="fas fa-arrow-left"></i> Back to Dashboard
             </a>
             <table class="schedule-grid">
-                <tr>
-                    <th>Time</th>
-                    {% for day in days %}
-                    <th>{{ day }}</th>
+                <thead>
+                    <tr>
+                        <th class="time-slot-header">Time</th>
+                        {% for day in days %}
+                            <th>{{ day }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for time in time_slots %}
+                    <tr>
+                        <td class="time-slot-header">{{ time }}</td>
+                        {% for day in days %}
+                            {% set room = schedule_grid[day][time] %}
+                            <td class="schedule-cell {% if room %}used{% else %}available{% endif %}">
+                                {% if room %}
+                                    Used
+                                    <span>Lab {{ room }}</span>
+                                {% else %}
+                                    Available
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                    </tr>
                     {% endfor %}
-                </tr>
-                {% for time in time_slots %}
-                <tr>
-                    <td class="time-slot">{{ time }}</td>
-                    {% for day in days %}
-                    <td {% if schedule_grid[day][time] %} class="occupied" {% endif %}>
-                        {% if schedule_grid[day][time] %}
-                            Lab {{ schedule_grid[day][time] }}
-                        {% endif %}
-                    </td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
+                </tbody>
             </table>
-
-        
-                </div>
-            </div>
         </div>
     </div>
 </body>

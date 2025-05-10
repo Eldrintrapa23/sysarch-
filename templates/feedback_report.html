@@ -619,9 +619,9 @@
             <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
             <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
             <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-laptop-code"></i> Lab Resources</a></li>
-            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-laptop-code"></i> adminlabschedule</a></li>
-            <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-desktop"></i> Lab Resources</a></li>
+            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-clock"></i> Lab Schedule</a></li>
+            <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>    
         </ul>
         </ul>
         <div class="logout-container">
@@ -636,6 +636,9 @@
     <div id="status-message"></div>
 
     <div class="container">
+        <div style="text-align:center; font-size:1.1em; font-weight:600; color:#41644A; margin-top:20px; margin-bottom:10px;">
+            University of Cebu-Main Campus College of Computer Studies Computer Labratory Sit-in Monitoring System
+        </div>
         <h1 class="page-title">Feedback Reports</h1>
 
         <!-- Search Box -->
@@ -841,15 +844,24 @@
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
-                
-                // Add title
+                // Main header: bold, all-caps, centered
                 doc.setFontSize(16);
-                doc.text("Feedback Reports", 14, 15);
-                doc.setFontSize(12);
-                
-                // Add date
+                doc.setFont(undefined, 'bold');
+                const header1 = "UNIVERSITY OF CEBU-MAIN CAMPUS";
+                const header2 = "COLLEGE OF COMPUTER STUDIES";
+                const header3 = "COMPUTER LABORATORY SIT-IN MONITORING SYSTEM";
+                const pageWidth = doc.internal.pageSize.getWidth();
+                doc.text(header1, pageWidth / 2, 18, { align: 'center' });
+                doc.text(header2, pageWidth / 2, 26, { align: 'center' });
+                doc.text(header3, pageWidth / 2, 34, { align: 'center' });
+                // Subtitle: report type, normal font, centered
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'normal');
+                doc.text("Feedback Reports", pageWidth / 2, 46, { align: 'center' });
+                doc.setFontSize(11);
                 const today = new Date().toLocaleDateString();
-                doc.text(`Generated on: ${today}`, 14, 25);
+                doc.text(`Generated on: ${today}`, pageWidth / 2, 54, { align: 'center' });
+                let y = 62;
                 
                 // Get table data
                 const table = document.querySelector('table');
@@ -878,7 +890,7 @@
                 doc.autoTable({
                     head: [headers],
                     body: data,
-                    startY: 30,
+                    startY: y + 10,
                     theme: 'grid',
                     headStyles: { 
                         fillColor: [65, 100, 74],
@@ -942,8 +954,9 @@
             // Convert to worksheet
             const ws = XLSX.utils.table_to_sheet(cleanTable);
             
-            // Add title and date
+            // Add university header and date, bold and larger
             XLSX.utils.sheet_add_aoa(ws, [
+                ['University of Cebu-Main Campus College of Computer Studies Computer Labratory Sit-in Monitoring System'],
                 ['Feedback Reports'],
                 [`Generated on: ${new Date().toLocaleDateString()}`],
                 ['']

@@ -310,8 +310,8 @@
             <li><a href="{{ url_for('feedback_report') }}"><i class="fas fa-comments"></i> Feedback</a></li>
             <li><a href="{{ url_for('reservation') }}"><i class="fas fa-calendar-alt"></i> Reservation</a></li>
             <li><a href="{{ url_for('leaderboard') }}"><i class="fas fa-trophy"></i> Leaderboard</a></li>
-            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-laptop-code"></i> Lab Resources</a></li>
-            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-laptop-code"></i> adminlabschedule</a></li>
+            <li><a href="{{ url_for('admin_resources') }}"><i class="fas fa-desktop"></i> Lab Resources</a></li>
+            <li><a href="{{ url_for('adminlabschedule') }}"><i class="fas fa-clock"></i> Lab Schedule</a></li>
             <li><a href="{{ url_for('computer_control') }}"><i class="fas fa-laptop-code"></i> computer control</a></li>
         </ul>
         </ul>
@@ -336,7 +336,7 @@
                 Most Active Students
             </h2>
             <ul class="leaderboard-list">
-                {% for student in active_students %}
+                {% for student in active_students[:5] %}
                 <li class="leaderboard-item rank-{{ loop.index }}">
                     <span class="rank">{{ loop.index }}</span>
                     {% if loop.index <= 3 %}
@@ -364,7 +364,7 @@
                 Top Performing Students
             </h2>
             <ul class="leaderboard-list">
-                {% for student in top_students %}
+                {% for student in top_students[:5] %}
                 <li class="leaderboard-item rank-{{ loop.index }}">
                     <span class="rank">{{ loop.index }}</span>
                     {% if loop.index <= 3 %}

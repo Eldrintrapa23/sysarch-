@@ -4,6 +4,7 @@ import bcrypt  # For password hashing
 import os
 from werkzeug.utils import secure_filename
 from datetime import datetime
+import traceback
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Secret key for session management
@@ -166,6 +167,31 @@ def init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_by TEXT
+        )
+    ''')
+
+    # Create reservation_logs table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reservation_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            reservation_id INTEGER,
+            admin TEXT,
+            action TEXT,
+            status TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Create password_resets table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            expires_at DATETIME NOT NULL,
+            used INTEGER DEFAULT 0, -- 0 for not used, 1 for used
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
 
@@ -536,7 +562,7 @@ def reserve():
         
         # Fetch user information
         cursor.execute("""
-            SELECT idno, lastname, firstname, course, remaining_sessions
+            SELECT idno, lastname, firstname, course, remaining_sessions, points
             FROM users 
             WHERE id = ?
         """, (session['user_id'],))
@@ -548,7 +574,8 @@ def reserve():
                 'lastname': user_data[1],
                 'firstname': user_data[2],
                 'course': user_data[3],
-                'remaining_sessions': user_data[4]
+                'remaining_sessions': user_data[4],
+                'points': user_data[5]
             }
         
         # Fetch ALL reservations of the student
@@ -566,16 +593,24 @@ def reserve():
             purpose = request.form['purpose']
             lab = request.form['lab']
             pc_number = request.form['pc_number']
-            
+
+            # Check if student is in an active sit-in session
+            cursor.execute("""
+                SELECT id FROM current_sit_in 
+                WHERE id_number = ? AND status = 'Ongoing'
+            """, (user['idno'],))
+            active_sit_in = cursor.fetchone()
+            if active_sit_in:
+                flash("You are currently in a sit-in session. Please end your current session before making a new reservation.", "danger")
+                return redirect(url_for('reserve'))
+
             # Check if PC is already reserved for the same date and time
             cursor.execute("""
                 SELECT id FROM reservations 
                 WHERE date = ? AND time = ? AND lab = ? AND pc_number = ? 
                 AND status != 'rejected'
             """, (date, time, lab, pc_number))
-            
             existing_reservation = cursor.fetchone()
-            
             if existing_reservation:
                 flash("This PC is already reserved for the selected date and time!", "danger")
                 return redirect(url_for('reserve'))
@@ -594,6 +629,14 @@ def reserve():
                 date, time, purpose, lab, pc_number,
                 'pending'
             ))
+            
+            # Create notification record for new reservation
+            cursor.execute("""
+                INSERT INTO reservation_logs (
+                    reservation_id, admin, action, status
+                ) VALUES (last_insert_rowid(), 'System', 'new_reservation', 'pending')
+            """)
+            
             conn.commit()
 
             flash("Reservation submitted successfully! Waiting for admin approval.", "success")
@@ -640,7 +683,9 @@ def admin_login():
             flash("Invalid admin ID number or password!", "danger")
             return redirect(url_for('admin_login'))
 
-    return render_template('admin_login.html')
+    # Instead of rendering a missing template, redirect to the main login page
+    flash("Admin login page not found. Please use the main login page.", "danger")
+    return redirect(url_for('home'))
 
 @app.route('/admin_dashboard')
 def admin_dashboard():
@@ -658,6 +703,10 @@ def admin_dashboard():
     cur.execute('SELECT COUNT(*) FROM sit_in_records')
     total_sit_in = cur.fetchone()[0]
 
+    # Count pending reservations for notification
+    cur.execute("SELECT COUNT(*) FROM reservations WHERE status = 'pending'")
+    pending_count = cur.fetchone()[0]
+
     # Get announcements (including title and content)
     cur.execute('SELECT id, admin, message, date_posted FROM announcements ORDER BY date_posted DESC')
     announcements = [{'id': row[0], 'admin': row[1], 'message': row[2], 'date_posted': row[3]} for row in cur.fetchall()]
@@ -666,7 +715,7 @@ def admin_dashboard():
 
     return render_template('admin_dashboard.html', total_students=total_students,
                            current_sit_in=current_sit_in, total_sit_in=total_sit_in,
-                           announcements=announcements)
+                           announcements=announcements, pending_count=pending_count)
 
 @app.route('/post_announcement', methods=['POST'])
 def post_announcement():
@@ -721,7 +770,8 @@ def search():
         # If there's a search query, filter the results
         if search_query:
             query = '''
-                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, remaining_sessions
+                SELECT idno, lastname, firstname, middlename, course, year_level, 
+                       email_address, remaining_sessions, role, points
                 FROM users
                 WHERE idno LIKE ? OR lastname LIKE ? OR firstname LIKE ?
                 ORDER BY lastname, firstname
@@ -731,7 +781,8 @@ def search():
         else:
             # If no search query or reset was clicked, show all students
             query = '''
-                SELECT idno, lastname, firstname, middlename, course, year_level, email_address, remaining_sessions
+                SELECT idno, lastname, firstname, middlename, course, year_level, 
+                       email_address, remaining_sessions, role, points
                 FROM users
                 ORDER BY lastname, firstname
             '''
@@ -1080,27 +1131,85 @@ def start_sit_in():
 def logout_sit_in(id):
     conn = sqlite3.connect('users.db')
     cur = conn.cursor()
+    logout_success = False
+    lab_to_update = None
+    pc_to_update = None
 
-    cur.execute("""
-        SELECT c.id_number, u.lastname, u.firstname, c.purpose, c.lab, c.login_time, c.date 
-        FROM current_sit_in c
-        JOIN users u ON c.id_number = u.idno
-        WHERE c.id = ?
-    """, (id,))
-    record = cur.fetchone()
+    try:
+        # Get the action from the form
+        action = request.form.get('action', 'end_without_points')
 
-    if record:
-        logout_time = datetime.now().strftime('%H:%M:%S')  # Only time
-
+        # Fetch required details including lab and pc_number
         cur.execute("""
-            INSERT INTO sit_in_records (id_number, purpose, lab, login_time, logout_time, date)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (record[0], record[3], record[4], record[5], logout_time, record[6]))
+            SELECT c.id_number, u.lastname, u.firstname, c.purpose, c.lab, c.pc_number, c.login_time, c.date 
+            FROM current_sit_in c
+            JOIN users u ON c.id_number = u.idno
+            WHERE c.id = ?
+        """, (id,))
+        record = cur.fetchone()
 
-        cur.execute("DELETE FROM current_sit_in WHERE id = ?", (id,))
-        conn.commit()
+        if record:
+            logout_time = datetime.now().strftime('%H:%M:%S')  # Only time
+            current_date = datetime.now().strftime('%Y-%m-%d') # Current date for pc_status
+            current_time_for_status = datetime.now().strftime('%H:%M:%S') # Current time for pc_status
 
-    conn.close()
+            # Store lab and pc for later update
+            lab_to_update = record[4]
+            pc_to_update = record[5]
+
+            cur.execute("""
+                INSERT INTO sit_in_records (id_number, purpose, lab, pc_number, login_time, logout_time, date)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (record[0], record[3], lab_to_update, pc_to_update, record[6], logout_time, record[7]))
+
+            # If action is end_with_points, add a point to the student and check for session reward
+            if action == 'end_with_points':
+                # Get current points
+                cur.execute("SELECT points FROM users WHERE idno = ?", (record[0],))
+                current_points = cur.fetchone()[0] or 0
+                new_points = current_points + 1
+                # If new_points is a multiple of 3, add a session
+                if new_points % 3 == 0:
+                    cur.execute("""
+                        UPDATE users 
+                        SET points = ?, remaining_sessions = remaining_sessions + 1 
+                        WHERE idno = ?
+                    """, (new_points, record[0]))
+                else:
+                    cur.execute("""
+                        UPDATE users 
+                        SET points = ? 
+                        WHERE idno = ?
+                    """, (new_points, record[0]))
+
+            cur.execute("DELETE FROM current_sit_in WHERE id = ?", (id,))
+            
+            # Update PC status to available
+            if lab_to_update and pc_to_update:
+                 print(f"Updating PC status: Lab={lab_to_update}, PC={pc_to_update} to available")
+                 cur.execute("""
+                    INSERT OR REPLACE INTO pc_status (lab, pc_number, date, time, status)
+                    VALUES (?, ?, ?, ?, ?)
+                 """, (lab_to_update, pc_to_update, current_date, current_time_for_status, 'available'))
+            
+            conn.commit()
+            logout_success = True
+            print(f"Successfully logged out session {id}, updated PC status.")
+
+    except Exception as e:
+        import traceback
+        print(f"Error during logout_sit_in for ID {id}: {str(e)}")
+        print(traceback.format_exc())
+        conn.rollback() # Rollback changes on error
+        flash(f"An error occurred while ending the session: {str(e)}", "danger")
+    finally:
+        conn.close()
+        print("DB connection closed for logout_sit_in.")
+    
+    # Redirect based on success
+    if logout_success:
+        flash("Session ended successfully.", "success")
+    # No flash message on error, already handled in except block
     
     return redirect(url_for('current_sit_in'))
 
@@ -1193,6 +1302,11 @@ def reservation():
 
     with sqlite3.connect('users.db') as conn:
         cursor = conn.cursor()
+        
+        # Count pending reservations for notification
+        cursor.execute("SELECT COUNT(*) FROM reservations WHERE status = 'pending'")
+        pending_count = cursor.fetchone()[0]
+        
         cursor.execute("""
             SELECT id, id_number, student_name, date, time, 
                    purpose, lab, pc_number, status 
@@ -1201,7 +1315,7 @@ def reservation():
         """)
         reservations = cursor.fetchall()
     
-    return render_template('adminreserve.html', reservations=reservations)
+    return render_template('adminreserve.html', reservations=reservations, pending_count=pending_count)
 
 @app.route('/update_reservation/<int:res_id>/<string:action>', methods=['POST'])
 def update_reservation(res_id, action):
@@ -1213,29 +1327,76 @@ def update_reservation(res_id, action):
     
     with sqlite3.connect('users.db') as conn:
         cursor = conn.cursor()
+        
+        # First get the reservation details
+        cursor.execute("""
+            SELECT id_number, student_name, date, time, purpose, lab, pc_number
+            FROM reservations
+            WHERE id = ?
+        """, (res_id,))
+        reservation = cursor.fetchone()
+        
+        if not reservation:
+            flash("Reservation not found!", "danger")
+            return redirect(url_for('reservation'))
+            
+        # Update reservation status
         cursor.execute("UPDATE reservations SET status = ? WHERE id = ?", 
                       (new_status, res_id))
-        conn.commit()
-
+        
+        # Log the action
+        cursor.execute("""
+            INSERT INTO reservation_logs (reservation_id, admin, action, status)
+            VALUES (?, ?, ?, ?)
+        """, (res_id, session.get('admin_username', 'Unknown'), action, new_status))
+        
         if new_status == 'approved':
-            # Get the reservation details to update PC status
+            # Deduct one session from the student
             cursor.execute("""
-                SELECT lab, pc_number, date, time
-                FROM reservations
-                WHERE id = ?
-            """, (res_id,))
-            reservation = cursor.fetchone()
-            
-            if reservation:
-                # Update PC status in the pc_status table
+                UPDATE users SET remaining_sessions = remaining_sessions - 1
+                WHERE idno = ?
+            """, (reservation[0],))
+            # Get current date and time
+            current_date = datetime.now().strftime('%Y-%m-%d')
+            current_time = datetime.now().strftime('%H:%M:%S')
+            # Check if the reservation date is today
+            if reservation[2] == current_date:
+                # Create a new sit-in record
+                cursor.execute("""
+                    INSERT INTO current_sit_in (
+                        id_number, purpose, lab, pc_number, session, 
+                        date, status, login_time
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    reservation[0],  # id_number
+                    reservation[4],  # purpose
+                    reservation[5],  # lab
+                    reservation[6],  # pc_number
+                    '1',  # session
+                    current_date,
+                    'Ongoing',
+                    current_time
+                ))
+                # Update PC status
                 cursor.execute("""
                     INSERT OR REPLACE INTO pc_status 
                     (lab, pc_number, date, time, status)
-                    VALUES (?, ?, ?, ?, 'reserved')
-                """, reservation)
-                conn.commit()
+                    VALUES (?, ?, ?, ?, ?)
+                """, (reservation[5], reservation[6], current_date, current_time, 'in-use'))
+                flash("Reservation approved and sit-in session started!", "success")
+            else:
+                # Just update PC status for future reservation
+                cursor.execute("""
+                    INSERT OR REPLACE INTO pc_status 
+                    (lab, pc_number, date, time, status)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (reservation[5], reservation[6], reservation[2], reservation[3], 'reserved'))
+                flash("Reservation approved!", "success")
+        else:
+            flash("Reservation rejected!", "success")
+            
+        conn.commit()
 
-    flash(f"Reservation {new_status}!", "success")
     return redirect(url_for('reservation'))
 
 @app.route('/create_announcement', methods=['POST'])
@@ -1511,25 +1672,30 @@ def lab_resources():
 
 @app.route('/lab_schedule')
 def lab_schedule():
+    print("--- Entering lab_schedule route ---")
+    conn = None
     try:
+        print("Connecting to DB...")
         conn = sqlite3.connect('users.db')
         cursor = conn.cursor()
+        print("DB Connected.")
         
-        # Define time slots and days (matching admin view)
+        # Define time slots and days including Saturday and up to 9 PM
         time_slots = [
-            '7:30 AM - 9:00 AM',
-            '9:00 AM - 10:30 AM',
-            '10:30 AM - 12:00 PM',
-            '1:00 PM - 2:30 PM',
-            '2:30 PM - 4:00 PM',
-            '4:00 PM - 5:30 PM'
+            '7:30 AM - 9:00 AM', '9:00 AM - 10:30 AM', '10:30 AM - 12:00 PM',
+            '1:00 PM - 2:30 PM', '2:30 PM - 4:00 PM', '4:00 PM - 5:30 PM',
+            '5:30 PM - 7:00 PM', '7:00 PM - 8:30 PM', '8:30 PM - 9:00 PM'  
         ]
-        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] 
+        print(f"Defined Days: {days}")
+        print(f"Defined Time Slots: {time_slots}")
         
-        # Initialize empty schedule grid
+        # Initialize empty schedule grid using the updated lists
         schedule_grid = {day: {time: None for time in time_slots} for day in days}
+        print("Initialized empty schedule_grid.")
         
         # Fetch all schedules
+        print("Executing SQL query to fetch schedules...")
         cursor.execute("""
             SELECT day, time_slot, room 
             FROM lab_schedules 
@@ -1540,26 +1706,51 @@ def lab_schedule():
                     WHEN 'Wednesday' THEN 3 
                     WHEN 'Thursday' THEN 4 
                     WHEN 'Friday' THEN 5 
+                    WHEN 'Saturday' THEN 6
                 END,
                 time_slot
         """)
-        schedules = cursor.fetchall()
+        # Renamed variable holding fetched rows
+        fetched_schedule_rows = cursor.fetchall() 
+        print(f"Fetched {len(fetched_schedule_rows)} rows from lab_schedule.")
         conn.close()
+        conn = None # Mark as closed
+        print("DB Connection closed.")
         
         # Fill schedule grid with room numbers
-        for day, time, room in schedules:
+        print("Populating schedule_grid...")
+        for day, time, room in fetched_schedule_rows: # Iterate using the new variable name
             if day in schedule_grid and time in schedule_grid[day]:
                 schedule_grid[day][time] = room
-        
+            else:
+                 print(f"Warning: Skipping schedule data not matching grid definition: Day='{day}', Time='{time}'")
+        print("Finished populating schedule_grid.")
+
+        # Pass the correctly structured data to the template
+        print("Rendering template lab_schedule.html...")
         return render_template('lab_schedule.html', 
                              schedule_grid=schedule_grid,
                              days=days,
                              time_slots=time_slots)
                              
     except Exception as e:
-        if 'conn' in locals():
-            conn.close()
-        return f'Error loading schedules: {str(e)}'
+        import traceback
+        error_details = traceback.format_exc()
+        # Enhanced logging
+        print("!!! EXCEPTION CAUGHT in lab_schedule route !!!")
+        print(f"Exception Type: {type(e).__name__}")
+        print(f"Exception Message: {str(e)}")
+        print("--- Traceback --- ")
+        print(error_details)
+        print("-----------------")
+        if conn:
+            try:
+                conn.close()
+                print("DB connection closed in except block.")
+            except Exception as close_err:
+                print(f"Error closing connection in except block: {close_err}")
+        # Return the error message including the specific exception string
+        return f'Error loading schedules. Please contact support. Details: {str(e)}'
 
 @app.route('/admin_resources')
 def admin_resources():
@@ -1998,47 +2189,55 @@ def adminlabschedule():
                 WHEN 'Wednesday' THEN 3 
                 WHEN 'Thursday' THEN 4 
                 WHEN 'Friday' THEN 5 
+                WHEN 'Saturday' THEN 6 -- Added Saturday ordering
             END,
             time_slot
     """)
     all_schedules = cursor.fetchall()
     
-    # Create a list of schedules for each day
-    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    # Define days and time slots including Saturday and up to 9 PM
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] 
     time_slots = [
         '7:30 AM - 9:00 AM',
         '9:00 AM - 10:30 AM',
         '10:30 AM - 12:00 PM',
         '1:00 PM - 2:30 PM',
         '2:30 PM - 4:00 PM',
-        '4:00 PM - 5:30 PM'
+        '4:00 PM - 5:30 PM',
+        '5:30 PM - 7:00 PM',
+        '7:00 PM - 8:30 PM',
+        '8:30 PM - 9:00 PM'
     ]
     
-    # Initialize the schedules structure
-    schedules = []
-    for _ in range(5):  # 5 days
+    # Initialize the schedules structure (list of lists)
+    schedules_grid = []
+    for _ in range(len(days)):  # 6 days
         day_schedule = []
-        for _ in range(6):  # 6 time slots
+        for _ in range(len(time_slots)):  # 9 time slots
             day_schedule.append(None)
-        schedules.append(day_schedule)
+        schedules_grid.append(day_schedule)
     
-    # Fill in the schedules
-    for schedule in all_schedules:
-        day, time_slot, room = schedule
+    # Fill in the schedules grid with data
+    for schedule_data in all_schedules:
+        day, time_slot, room = schedule_data
         try:
             day_index = days.index(day)
             time_index = time_slots.index(time_slot)
-            schedules[day_index][time_index] = {
+            # Store the dictionary in the correct grid slot
+            schedules_grid[day_index][time_index] = {
                 'room': room,
                 'day': day,
                 'time_slot': time_slot
             }
         except ValueError:
-            continue  # Skip invalid day or time slot
+            # Skip if day or time_slot is not in the defined lists (handles potential bad data)
+            print(f"Skipping invalid schedule data: Day='{day}', Time='{time_slot}'")
+            continue  
     
     conn.close()
+    # Pass the updated variables to the template
     return render_template('adminlabschedule.html', 
-                         schedules=schedules,
+                         schedules=schedules_grid, # Pass the grid structure
                          days=days,
                          time_slots=time_slots)
 
@@ -2220,7 +2419,7 @@ def get_current_sit_in_status():
         
         # Get all PCs currently in use with student details
         cursor.execute("""
-            SELECT c.lab, c.pc_number, c.id_number, c.purpose, u.firstname, u.lastname
+            SELECT c.lab, c.pc_number, c.id_number, c.purpose, u.firstname, u.lastname, u.course, u.year_level
             FROM current_sit_in c
             LEFT JOIN users u ON c.id_number = u.idno
             WHERE c.status = 'Ongoing'
@@ -2232,7 +2431,9 @@ def get_current_sit_in_status():
             'pc_number': pc[1],
             'student_id': pc[2],
             'purpose': pc[3],
-            'student_name': f"{pc[4]} {pc[5]}" if pc[4] and pc[5] else "Unknown"
+            'student_name': f"{pc[4]} {pc[5]}" if pc[4] and pc[5] else "Unknown",
+            'course': pc[6] if len(pc) > 6 else '',
+            'year_level': pc[7] if len(pc) > 7 else ''
         } for pc in in_use_pcs]
         
         conn.close()
@@ -2333,6 +2534,353 @@ def check_pc_availability():
             'success': False,
             'message': str(e)
         })
+
+@app.route('/api/pc_status/toggle', methods=['POST'])
+def toggle_pc_status():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        data = request.get_json()
+        lab = data['lab']
+        pc_number = data['pc_number']
+        status = data['status']
+        date = data['date']
+        time = data['time']
+        
+        print(f"Toggling PC {pc_number} in lab {lab} to status: {status}")
+        
+        # Validate status
+        if status not in ['available', 'in-use']:
+            return jsonify({'success': False, 'message': f'Invalid status: {status}'})
+        
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # Insert or replace PC status in the database
+        cursor.execute("""
+            INSERT OR REPLACE INTO pc_status (lab, pc_number, date, time, status)
+            VALUES (?, ?, ?, ?, ?)
+        """, (lab, pc_number, date, time, status))
+        
+        conn.commit()
+        
+        # Query to verify the update
+        cursor.execute("""
+            SELECT lab, pc_number, status, date, time
+            FROM pc_status
+            WHERE lab = ? AND pc_number = ? AND date = ?
+        """, (lab, pc_number, date))
+        
+        updated_record = cursor.fetchone()
+        print(f"Updated record: {updated_record}")
+        
+        conn.close()
+        
+        return jsonify(success=True, updated_record=updated_record)
+    except Exception as e:
+        if 'conn' in locals():
+            conn.rollback()
+            conn.close()
+        print(f"Error in toggle_pc_status: {str(e)}")
+        return jsonify(success=False, message=str(e))
+
+@app.route('/api/pc_status/toggle_all', methods=['POST'])
+def toggle_all_pc_status():
+    if 'admin_username' not in session:
+        return jsonify({'success': False, 'message': 'Admin access required'})
+    
+    try:
+        data = request.get_json()
+        lab = data['lab']
+        pc_numbers = data['pc_numbers']  # list of numbers
+        status = data['status']
+        date = data['date']
+        time = data['time']
+        force_refresh = data.get('force_refresh', False)
+        
+        print(f"Toggling all PCs status in lab {lab}: {pc_numbers} to {status}, force_refresh={force_refresh}")
+        
+        # Validate status
+        if status not in ['available', 'in-use']:
+            return jsonify({'success': False, 'message': f'Invalid status: {status}'})
+        
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # Start a transaction for batch update
+        cursor.execute("BEGIN TRANSACTION")
+        
+        # Insert or replace status for each PC
+        for pc_number in pc_numbers:
+            print(f"Setting PC {pc_number} in {lab} to status: {status}")
+            cursor.execute("""
+                INSERT OR REPLACE INTO pc_status (lab, pc_number, date, time, status)
+                VALUES (?, ?, ?, ?, ?)
+            """, (lab, pc_number, date, time, status))
+        
+        conn.commit()
+        
+        # Query to verify the update
+        cursor.execute("""
+            SELECT lab, pc_number, status, date, time
+            FROM pc_status
+            WHERE lab = ? AND date = ? AND pc_number IN ({})
+            ORDER BY pc_number
+        """.format(','.join(['?'] * len(pc_numbers))), [lab, date] + pc_numbers)
+        
+        updated_records = cursor.fetchall()
+        print(f"Updated records: {updated_records}")
+        
+        # Count records with correct status
+        success_count = 0
+        for record in updated_records:
+            if record[2] == status:  # Check if status matches
+                success_count += 1
+        
+        conn.close()
+        
+        # Return detailed response with cache-busting headers
+        response = jsonify({
+            'success': True, 
+            'updated_count': len(pc_numbers),
+            'success_count': success_count,
+            'requested_status': status,
+            'lab': lab,
+            'date': date,
+            'updated_records': [
+                {'lab': r[0], 'pc_number': r[1], 'status': r[2], 'date': r[3], 'time': r[4]} 
+                for r in updated_records
+            ]
+        })
+        
+        # Add cache-busting headers if force_refresh is requested
+        if force_refresh:
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+        
+        return response
+    except Exception as e:
+        if 'conn' in locals():
+            conn.rollback()
+            conn.close()
+        print(f"Error in toggle_all_pc_status: {str(e)}")
+        return jsonify(success=False, message=str(e))
+
+@app.route('/get_saved_pc_status')
+def get_saved_pc_status():
+    try:
+        date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+        no_cache = request.args.get('t', None)  # Cache-busting parameter
+        
+        # Also get current time for additional diagnostics
+        current_time = datetime.now().strftime('%H:%M:%S')
+        current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        
+        # Debug: Get all PC statuses to see what's in the database
+        cursor.execute("SELECT * FROM pc_status WHERE date = ? ORDER BY id DESC LIMIT 20", (date,))
+        recent_statuses = cursor.fetchall()
+        print(f"Recent PC statuses in DB for date {date}: {recent_statuses}")
+        
+        # Get saved PC statuses for the given date
+        # Getting the most recent status for each PC
+        cursor.execute("""
+            SELECT p1.lab, p1.pc_number, p1.status, p1.time
+            FROM pc_status p1
+            INNER JOIN (
+                SELECT lab, pc_number, MAX(time) as max_time
+                FROM pc_status
+                WHERE date = ?
+                GROUP BY lab, pc_number
+            ) p2 ON p1.lab = p2.lab AND p1.pc_number = p2.pc_number AND p1.time = p2.max_time
+            WHERE p1.date = ?
+        """, (date, date))
+        
+        pc_statuses = [
+            {
+                'lab': row[0],
+                'pc_number': row[1],
+                'status': row[2],
+                'time': row[3]
+            } for row in cursor.fetchall()
+        ]
+        
+        # Group PCs by lab for easier debugging
+        labs_with_status = {}
+        for pc in pc_statuses:
+            lab = pc['lab']
+            if lab not in labs_with_status:
+                labs_with_status[lab] = []
+            labs_with_status[lab].append(pc)
+        
+        print(f"Returning PC statuses for date {date}:")
+        for lab, pcs in labs_with_status.items():
+            print(f"  {lab}: {len(pcs)} PCs, status breakdown: {sum(1 for pc in pcs if pc['status'] == 'in-use')} in-use, {sum(1 for pc in pcs if pc['status'] == 'available')} available")
+        
+        conn.close()
+        
+        # Create response with appropriate headers
+        response = jsonify({
+            'success': True,
+            'pc_statuses': pc_statuses,
+            'date': date,
+            'current_time': current_time,
+            'server_datetime': current_datetime,
+            'status_count': len(pc_statuses),
+            'labs_summary': {
+                lab: {
+                    'total': len(pcs),
+                    'in_use': sum(1 for pc in pcs if pc['status'] == 'in-use'),
+                    'available': sum(1 for pc in pcs if pc['status'] == 'available')
+                } for lab, pcs in labs_with_status.items()
+            }
+        })
+        
+        # Add cache-busting headers if requested
+        if no_cache:
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+        
+        return response
+        
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        error_message = f"Error in get_saved_pc_status: {str(e)}"
+        print(error_message)
+        
+        response = jsonify({
+            'success': False,
+            'message': error_message,
+            'date': date if 'date' in locals() else None,
+            'error': str(e)
+        })
+        
+        # Always add no-cache headers for error responses
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+
+# --- Password Reset Routes (Basic Structure) ---
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        idno = request.form['idno']
+        
+        # --- Placeholder Logic ---
+        # 1. Find user by idno in the 'users' table.
+        # 2. If user exists:
+        #    a. Generate a secure, unique token (e.g., using secrets.token_urlsafe()).
+        #    b. Calculate an expiry time (e.g., 1 hour from now).
+        #    c. Store user_id, token, and expires_at in the 'password_resets' table.
+        #    d. Send an email to the user's email_address containing a link like: 
+        #       url_for('reset_password', token=token, _external=True)
+        #    e. Flash a success message ("If an account exists..., instructions have been sent.")
+        # 3. If user does not exist, still flash the same success message to prevent user enumeration.
+        # --- End Placeholder --- 
+        
+        # Example (without actual token generation/email):
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, email_address FROM users WHERE idno = ?", (idno,))
+        user = cursor.fetchone()
+        conn.close()
+
+        if user:
+             print(f"TODO: Generate token for user ID {user[0]} and email {user[1]}")
+             # Here you would generate token, store it, and send email
+             pass # Placeholder 
+
+        flash("If an account with that ID number exists, password reset instructions have been sent to the associated email address.", "success")
+        return redirect(url_for('forgot_password')) # Redirect back to the same page
+
+    return render_template('forgot_password.html')
+
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    # --- Placeholder Logic ---
+    # 1. Find the token in the 'password_resets' table.
+    # 2. Check if the token exists, hasn't expired (compare expires_at with current time), and hasn't been used (used == 0).
+    # 3. If token is invalid/expired/used, flash error and redirect to forgot_password or login.
+    # --- End Placeholder ---
+
+    # Example check (replace with actual DB lookup):
+    is_token_valid = False # Assume invalid initially
+    user_id_from_token = None
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT user_id, expires_at, used 
+        FROM password_resets 
+        WHERE token = ?
+    """, (token,))
+    reset_record = cursor.fetchone()
+    
+    if reset_record:
+        user_id_from_token, expires_at_str, used = reset_record
+        expires_at = datetime.fromisoformat(expires_at_str)
+        if expires_at > datetime.now() and used == 0:
+             is_token_valid = True
+        else:
+            if used != 0:
+                flash("This password reset link has already been used.", "error")
+            elif expires_at <= datetime.now():
+                 flash("This password reset link has expired.", "error")
+    else:
+         flash("Invalid password reset link.", "error")
+    # Connection closing is handled later
+
+    if not is_token_valid:
+        conn.close() # Close connection before redirecting
+        return redirect(url_for('forgot_password'))
+    
+    # --- Handle POST request (password change) ---
+    if request.method == 'POST':
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        
+        if new_password != confirm_password:
+            flash("Passwords do not match!", "error")
+            # Keep connection open to render template again
+        else:
+            # --- Placeholder Logic ---
+            # 1. Hash the new_password using bcrypt.
+            # 2. Update the password for the user_id associated with the token in the 'users' table.
+            # 3. Mark the token as used (set used = 1) in the 'password_resets' table.
+            # 4. Commit the database changes.
+            # 5. Flash success message.
+            # 6. Redirect to login page.
+            # --- End Placeholder ---
+            
+            # Example update:
+            try:
+                hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+                cursor.execute("UPDATE users SET password = ? WHERE id = ?", (hashed_password, user_id_from_token))
+                cursor.execute("UPDATE password_resets SET used = 1 WHERE token = ?", (token,))
+                conn.commit()
+                flash("Password updated successfully! You can now log in with your new password.", "success")
+                conn.close() # Close after successful commit
+                return redirect(url_for('login'))
+            except Exception as e:
+                 flash(f"Error updating password: {str(e)}", "error")
+                 conn.rollback() # Rollback on error
+                 # Keep connection open to render template again
+
+    # Close connection if not already closed (e.g., GET request or POST error)
+    if conn:
+        conn.close()
+
+    # Render the reset form on GET request or if POST had errors
+    return render_template('reset_password.html', token=token)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
